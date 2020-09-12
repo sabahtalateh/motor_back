@@ -1,6 +1,5 @@
 use mongodb::{Client, Database};
-use shaku::{module, Component, HasComponent, HasProvider, Interface, Module, Provider};
-
+use shaku::{Component, Interface};
 
 pub trait DBIf: Interface {
     fn get(&self) -> Database;
