@@ -1,4 +1,3 @@
-use crate::errors::AppError;
 use crate::logger::{AppLoggerIf, WithLogger};
 use crate::repos::users::UserRepoIf;
 use crate::services::check::CheckServiceIf;

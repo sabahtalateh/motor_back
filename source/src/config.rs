@@ -1,7 +1,7 @@
 use chrono::Duration;
 use dotenv::dotenv;
-use proc_macro_derive::service;
-use shaku::{module, Component, HasComponent, HasProvider, Interface, Module, Provider};
+
+use shaku::{Component, Interface};
 use slog::Level;
 use std::env;
 use std::str::FromStr;

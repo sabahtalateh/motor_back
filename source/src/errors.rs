@@ -1,7 +1,7 @@
-use bcrypt::BcryptError;
-use juniper::sa::_core::fmt::Formatter;
+
+
 use juniper::{graphql_value, FieldError, IntoFieldError};
-use std::sync::Arc;
+
 use AppErrorType::*;
 
 #[derive(Debug, Clone)]

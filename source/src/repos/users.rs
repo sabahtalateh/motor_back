@@ -1,5 +1,5 @@
 use crate::db::DBIf;
-use crate::errors::AppError;
+
 use crate::logger::{AppLoggerIf, WithLogger};
 use crate::utils::{AppResult, LogOnErr, IntoAppErr};
 use async_trait::async_trait;

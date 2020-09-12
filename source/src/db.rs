@@ -1,6 +1,6 @@
 use mongodb::{Client, Database};
 use shaku::{module, Component, HasComponent, HasProvider, Interface, Module, Provider};
-use std::error::Error;
+
 
 pub trait DBIf: Interface {
     fn get(&self) -> Database;

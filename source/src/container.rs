@@ -1,17 +1,17 @@
-use crate::config::{Config, ConfigIf};
-use crate::db::{DBParameters, DB};
-use crate::logger::build_app_logger;
-use crate::logger::{AppLogger, AppLoggerParameters};
-use crate::mongo;
+use crate::config::{Config};
+use crate::db::{DB};
+
+use crate::logger::{AppLogger};
+
 use crate::repos::users::UserRepo;
 use crate::services::auth::AuthService;
-use crate::services::check::{CheckService, CheckServiceParameters};
-use mongodb::{Client, Database};
-use shaku::{module, Component, HasProvider, Interface, Module, Provider};
-use std::any::{Any, TypeId};
-use std::collections::HashMap;
-use std::error::Error;
-use std::sync::Arc;
+use crate::services::check::{CheckService};
+
+use shaku::{module};
+
+
+
+
 
 module! {
     pub Container {

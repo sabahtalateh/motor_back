@@ -1,8 +1,8 @@
-use crate::config::Config;
-use mongodb::{Client, Database};
+
+use mongodb::{Database};
 use bson::document::Document;
-use std::io;
-use std::sync::Arc;
+
+
 use std::vec::Vec;
 
 lazy_static! {

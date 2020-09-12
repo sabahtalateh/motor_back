@@ -5,11 +5,11 @@ use crate::container::Container;
 use crate::handlers::mutation::Mutation;
 use crate::handlers::query::Query;
 use actix_web::{web, HttpResponse};
-use juniper::futures::Stream;
+
 use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;
-use juniper::{EmptySubscription, FieldError, RootNode};
-use std::pin::Pin;
+use juniper::{EmptySubscription, RootNode};
+
 use std::sync::Arc;
 
 #[derive(Clone)]
