@@ -1,5 +1,6 @@
-use crate::errors::AppError;
 use slog::Logger;
+
+use crate::errors::AppError;
 
 pub type AppResult<T> = Result<T, AppError>;
 
@@ -32,10 +33,7 @@ pub trait IntoAppErr<T> {
     fn into_app_err(self) -> Result<T, AppError>;
 }
 
-impl<T, E> IntoAppErr<T> for Result<T, E>
-// where
-//     E: Into<AppError>,
-{
+impl<T, E> IntoAppErr<T> for Result<T, E> {
     fn into_app_err(self) -> Result<T, AppError> {
         match self {
             Ok(ok) => Ok(ok),
