@@ -1,0 +1,55 @@
+[package]
+name = "motor_back"
+version = "0.1.0"
+authors = ["Aleksandr Kravtsov <sabahtalateh@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+
+# пароли шифровать
+bcrypt = "0.8.2"
+
+# ето маи макросы
+proc_macro = { path = "../proc_macro" }
+proc_macro_derive = { path = "../proc_macro/proc_macro_derive" }
+
+# для асинка в трейтах
+async-trait = "0.1.40"
+
+# ну бля это актикс ёбана
+actix-cors = "0.2.0"
+actix-rt = "1.1.1"
+actix-service = "1.0.6"
+actix-web = "2.0.0"
+
+# датавремя
+chrono = { version = "0.4.15", features = ["serde"] }
+
+# брёвна
+slog = "2.5.2"
+slog-json = "2.3.0"
+slog-term = "2.6.0"
+slog-atomic = "3.0.0"
+slog-async = "2.5.0"
+log = "0.4.0"
+
+# конфигурай
+config = "0.10.1"
+dotenv = "0.15.0"
+
+# если пёрнул и ты один в комнате, провертри, не будь свинюхой (С) пауло графкуэльё
+juniper = { git = "https://github.com/graphql-rust/juniper", branch = "master" }
+## juniper_subscriptions = { git = "https://github.com/graphql-rust/juniper", branch = "master" }
+
+# монга
+mongodb = "1.1.1"
+bson = "1.1.0"
+
+# Внедрение зависимостей.. (шобы это не значило)
+shaku = "0.5.0"
+
+# всеми любимый
+serde = "1.0.116"
+
+# ленивый Стасик (иди работай)
+lazy_static = "1.4.0"
