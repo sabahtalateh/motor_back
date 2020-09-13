@@ -5,14 +5,8 @@ use crate::logger::build_app_logger;
 use crate::logger::{AppLogger, AppLoggerParameters};
 use crate::mongo;
 
-
+use crate::services::auth::{AuthService, AuthServiceParameters};
 use crate::services::check::{CheckService, CheckServiceParameters};
-
-
-
-
-
-
 
 pub async fn init_app(config: &Config) -> Container {
     let mongo_client = mongo::client::build_client(
@@ -37,6 +31,10 @@ pub async fn init_app(config: &Config) -> Container {
         })
         .with_component_parameters::<AppLogger>(AppLoggerParameters {
             logger: build_app_logger(&config),
+        })
+        .with_component_parameters::<AuthService>(AuthServiceParameters {
+            access_token_lifetime: config.access_token_lifetime,
+            refresh_token_lifetime: config.refresh_token_lifetime,
         })
         .build();
 

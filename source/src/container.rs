@@ -1,17 +1,11 @@
-use crate::config::{Config};
-use crate::db::{DB};
-
-use crate::logger::{AppLogger};
-
-use crate::repos::users::UserRepo;
+use crate::config::Config;
+use crate::db::DB;
+use crate::logger::AppLogger;
+use crate::repos::users::UsersRepo;
+use crate::repos::tokens::TokensRepo;
 use crate::services::auth::AuthService;
-use crate::services::check::{CheckService};
-
-use shaku::{module};
-
-
-
-
+use crate::services::check::CheckService;
+use shaku::module;
 
 module! {
     pub Container {
@@ -22,7 +16,8 @@ module! {
             AppLogger,
 
             // repo
-            UserRepo,
+            UsersRepo,
+            TokensRepo,
 
             // service
             AuthService,
@@ -32,5 +27,3 @@ module! {
         ]
     }
 }
-
-

@@ -1,8 +1,5 @@
-
 use mongodb::{Database};
 use bson::document::Document;
-
-
 use std::vec::Vec;
 
 lazy_static! {
@@ -19,8 +16,16 @@ lazy_static! {
             doc! {
                 "createIndexes": "tokens",
                 "indexes": [{
-                    "key": {"access": 1, "refresh": 1},
-                    "name": "unique_tokens",
+                    "key": {"access": 1},
+                    "name": "unique_access_token",
+                    "unique": true
+                }]
+            },
+            doc! {
+                "createIndexes": "tokens",
+                "indexes": [{
+                    "key": {"refresh": 1},
+                    "name": "unique_refresh_token",
                     "unique": true
                 }]
             },

@@ -28,7 +28,7 @@ pub struct Config {
     #[shaku(no_default)]
     pub access_token_lifetime: Duration,
     #[shaku(no_default)]
-    pub refresh_token_lifetime_sec: Duration,
+    pub refresh_token_lifetime: Duration,
 
     pub clear_logger_files: bool,
     pub loggers_json_pretty: bool,
@@ -65,7 +65,7 @@ impl Config {
             pwd_min_len: 6,
 
             access_token_lifetime: Duration::hours(1),
-            refresh_token_lifetime_sec: Duration::days(14),
+            refresh_token_lifetime: Duration::days(14),
 
             clear_logger_files: env::var("CLEAR_LOGGERS_FILES")
                 .expect("CLEAR_LOGGERS_FILES not set in .env")

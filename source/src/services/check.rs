@@ -1,5 +1,5 @@
 use crate::errors::AppError;
-use crate::repos::users::UserRepoIf;
+use crate::repos::users::UsersRepoIf;
 use crate::utils::AppResult;
 use async_trait::async_trait;
 use shaku::{Component, Interface};
@@ -15,7 +15,7 @@ pub trait CheckServiceIf: Interface {
 #[shaku(interface = CheckServiceIf)]
 pub struct CheckService {
     #[shaku(inject)]
-    user_repo: Arc<dyn UserRepoIf>,
+    user_repo: Arc<dyn UsersRepoIf>,
     pwd_min_len: u32,
 }
 
@@ -25,10 +25,13 @@ impl CheckServiceIf for CheckService {
         if password.len() >= self.pwd_min_len as usize {
             Ok(())
         } else {
-            Err(AppError::check(format!(
-                "password length should be at least `{}` characters",
-                self.pwd_min_len
-            )))
+            Err(AppError::check(
+                format!(
+                    "password length should be at least `{}` characters",
+                    self.pwd_min_len
+                )
+                .as_str(),
+            ))
         }
     }
 
@@ -36,10 +39,9 @@ impl CheckServiceIf for CheckService {
         if false == self.user_repo.username_exists(username).await? {
             Ok(())
         } else {
-            Err(AppError::check(format!(
-                "Username `{}` already taken",
-                username
-            )))
+            Err(AppError::check(
+                format!("Username `{}` already taken", username).as_str(),
+            ))
         }
     }
 }

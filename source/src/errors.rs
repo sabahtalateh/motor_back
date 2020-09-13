@@ -1,11 +1,11 @@
-
-
 use juniper::{graphql_value, FieldError, IntoFieldError};
 
 use AppErrorType::*;
 
 #[derive(Debug, Clone)]
 pub enum AppErrorType {
+    NotFound,
+    Unauthorized,
     InternalServerError,
     CheckError,
 }
@@ -13,6 +13,8 @@ pub enum AppErrorType {
 impl ToString for AppErrorType {
     fn to_string(&self) -> String {
         match self {
+            NotFound => "not_found",
+            Unauthorized => "unauthorized",
             InternalServerError => "internal_server_error",
             CheckError => "check_error",
         }
@@ -33,22 +35,31 @@ struct ApiError {
 }
 
 impl AppError {
-    fn new(message: String, error_type: AppErrorType) -> AppError {
+    fn new(message: &str, error_type: AppErrorType) -> AppError {
         AppError {
-            message,
+            message: message.to_string(),
             error_type,
         }
     }
 
-    pub fn internal_server_error() -> AppError {
-        AppError::new(
-            "internal server error".to_string(),
-            AppErrorType::InternalServerError,
-        )
+    pub fn unauthorized_default() -> AppError {
+        AppError::new("unauthorized", AppErrorType::Unauthorized)
     }
 
-    pub fn check(message: String) -> AppError {
+    pub fn unauthorized(message: &str) -> AppError {
+        AppError::new(message, AppErrorType::Unauthorized)
+    }
+
+    pub fn not_found(message: &str) -> AppError {
+        AppError::new(message, AppErrorType::NotFound)
+    }
+
+    pub fn check(message: &str) -> AppError {
         AppError::new(message, AppErrorType::CheckError)
+    }
+
+    pub fn internal_server_error() -> AppError {
+        AppError::new("internal server error", AppErrorType::InternalServerError)
     }
 }
 

@@ -86,8 +86,6 @@ pub fn has_logger(input: TokenStream) -> TokenStream {
         impl HasLogger for #name {
             fn logger(&self) -> &Logger {
                 self.#logger_field.logger()
-                // println!("{}", #bbb);
-                // return "123".to_string();
             }
         }
     };
