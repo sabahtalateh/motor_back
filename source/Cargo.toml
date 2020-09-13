@@ -39,7 +39,7 @@ dotenv = "0.15.0"
 
 # если пёрнул и ты один в комнате, провертри, не будь свинюхой (С) пауло графкуэльё
 juniper = { git = "https://github.com/graphql-rust/juniper", branch = "master" }
-## juniper_subscriptions = { git = "https://github.com/graphql-rust/juniper", branch = "master" }
+# juniper_subscriptions = { git = "https://github.com/graphql-rust/juniper", branch = "master" }
 
 # монга
 mongodb = "1.1.1"
@@ -53,3 +53,6 @@ serde = "1.0.116"
 
 # ленивый Стасик (иди работай)
 lazy_static = "1.4.0"
+
+# уникальный айди, почти такой же уникальный как ты
+uuid = { version = "0.8.1", features = ["serde", "v4"] }

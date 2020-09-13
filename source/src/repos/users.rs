@@ -1,9 +1,10 @@
 use crate::db::DBIf;
 
-use crate::logger::{AppLoggerIf, WithLogger};
-use crate::utils::{AppResult, LogOnErr, IntoAppErr};
+use crate::logger::AppLoggerIf;
+use crate::utils::{AppResult, IntoAppErr, LogOnErr};
 use async_trait::async_trait;
 use bson::Document;
+use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
@@ -15,19 +16,15 @@ pub trait UserRepoIf: Interface {
     async fn insert(&self, username: String, password: String) -> AppResult<()>;
 }
 
-#[derive(Component)]
 #[shaku(interface = UserRepoIf)]
+#[derive(Component, HasLogger)]
 pub struct UserRepo {
     #[shaku(inject)]
     db: Arc<dyn DBIf>,
-    #[shaku(inject)]
-    app_logger: Arc<dyn AppLoggerIf>,
-}
 
-impl WithLogger for UserRepo {
-    fn logger(&self) -> &Logger {
-        self.app_logger.logger()
-    }
+    #[logger]
+    #[shaku(inject)]
+    pub app_logger: Arc<dyn AppLoggerIf>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

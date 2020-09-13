@@ -1,9 +1,10 @@
-use crate::logger::{AppLoggerIf, WithLogger};
+use crate::logger::AppLoggerIf;
 use crate::repos::users::UserRepoIf;
 use crate::services::check::CheckServiceIf;
 use crate::utils::{AppResult, IntoAppErr, LogOnErr};
 use async_trait::async_trait;
 use bcrypt::{hash, verify, DEFAULT_COST};
+use proc_macro::HasLogger;
 use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
@@ -14,21 +15,18 @@ pub trait AuthServiceIf: Interface {
     async fn register(&self, login: String, password: String) -> AppResult<()>;
 }
 
-#[derive(Component)]
+#[derive(Component, HasLogger)]
 #[shaku(interface = AuthServiceIf)]
 pub struct AuthService {
     #[shaku(inject)]
     user_repo: Arc<dyn UserRepoIf>,
+
     #[shaku(inject)]
     check_service: Arc<dyn CheckServiceIf>,
+
+    #[logger]
     #[shaku(inject)]
     app_logger: Arc<dyn AppLoggerIf>,
-}
-
-impl WithLogger for AuthService {
-    fn logger(&self) -> &Logger {
-        self.app_logger.logger()
-    }
 }
 
 #[async_trait]

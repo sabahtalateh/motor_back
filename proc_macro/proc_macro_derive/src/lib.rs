@@ -1,11 +1,12 @@
+mod util;
+
 extern crate proc_macro;
 
+use crate::util::{applied_to_struct, extract_helpers, parse_struct_name};
 use darling::FromMeta;
 use proc_macro::{TokenStream, TokenTree};
-use proc_macro_error::abort_call_site;
-use proc_macro_error::proc_macro_error;
+use proc_macro_error::{abort_call_site, proc_macro_error};
 use quote::quote;
-use syn;
 use syn::{parse_macro_input, AttributeArgs};
 
 #[proc_macro_derive(Dependency)]
@@ -14,61 +15,18 @@ pub fn dep_macro_derive(input: TokenStream) -> TokenStream {
 
     let name = &ast.ident;
 
-    let gen = quote! {
+    let tt = quote! {
         impl Dependency for #name {
             fn service_name() -> String {
                 return stringify!(#name).to_string();
             }
         }
     };
-    gen.into()
-}
-
-fn applied_to_struct(input: TokenStream) -> bool {
-    let mut is_struct = false;
-
-    for t in input.into_iter() {
-        match t {
-            TokenTree::Ident(i) => {
-                if i.to_string() == "struct" {
-                    is_struct = true;
-                    break;
-                }
-            }
-            _ => (),
-        }
-    }
-
-    is_struct
-}
-
-fn parse_struct_name(input: TokenStream) -> String {
-    let it = input.into_iter();
-    let mut prev_struct_keyword = false;
-    for t in it {
-        if prev_struct_keyword {
-            if let TokenTree::Ident(struct_name) = t {
-                return struct_name.to_string();
-            } else {
-                abort_call_site!("struct name should follow `struct` keyword");
-            }
-        }
-
-        match t {
-            TokenTree::Ident(i) => {
-                if i.to_string() == "struct" {
-                    prev_struct_keyword = true;
-                }
-            }
-            _ => (),
-        }
-    }
-
-    abort_call_site!("struct name should follow `struct` keyword");
+    tt.into()
 }
 
 #[derive(Debug, FromMeta)]
-struct ServiceArgs {
+struct Service2Args {
     name: String,
 }
 
@@ -81,7 +39,7 @@ pub fn service(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let struct_name = parse_struct_name(input.clone());
     let attr_args = parse_macro_input!(args as AttributeArgs);
-    match ServiceArgs::from_list(&attr_args) {
+    match Service2Args::from_list(&attr_args) {
         Ok(dep_args) => {
             let dep_name: String = dep_args.name;
             let dep_trait = format!(
@@ -101,4 +59,37 @@ pub fn service(args: TokenStream, input: TokenStream) -> TokenStream {
             abort_call_site!("`dep` macro should have `name` attr");
         }
     }
+}
+
+#[proc_macro_derive(HasLogger, attributes(logger))]
+pub fn has_logger(input: TokenStream) -> TokenStream {
+    let ast: syn::DeriveInput = syn::parse(input).unwrap();
+
+    let name = &ast.ident;
+
+    let mut helpers = extract_helpers(
+        &ast,
+        "logger",
+        "`#[derive(HasLogger)]` must be applied to struct",
+    );
+
+    if helpers.len() != 1 {
+        panic!("`#[derive(HasLogger)]` must have exactly 1 `#[logger]` helper");
+    }
+
+    let (logger_field, _) = helpers.get(0).unwrap();
+
+    let bb: Vec<String> = helpers.iter().map(|(x, y)| format!("{}", x)).collect();
+    let bbb: String = bb.join(",");
+
+    let tt = quote! {
+        impl HasLogger for #name {
+            fn logger(&self) -> &Logger {
+                self.#logger_field.logger()
+                // println!("{}", #bbb);
+                // return "123".to_string();
+            }
+        }
+    };
+    tt.into()
 }

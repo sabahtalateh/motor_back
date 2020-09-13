@@ -22,7 +22,7 @@ impl AppLoggerIf for AppLogger {
 }
 
 pub trait WithLogger {
-    fn logger(&self) -> &Logger;
+    fn loggerrrr(&self) -> &Logger;
 }
 
 pub fn build_app_logger(config: &Config) -> Logger {

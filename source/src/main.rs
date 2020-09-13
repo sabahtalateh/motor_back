@@ -11,6 +11,9 @@ mod services;
 mod utils;
 
 #[macro_use]
+extern crate proc_macro_derive;
+
+#[macro_use]
 extern crate lazy_static;
 
 #[macro_use]
@@ -31,11 +34,16 @@ use actix_cors::Cors;
 use actix_web::{http::header, http::Method, middleware, App, HttpServer};
 use std::io;
 use std::sync::Arc;
+use crate::repos::users::UserRepoIf;
+use shaku::HasComponent;
 
 #[actix_rt::main]
 async fn main() -> Result<(), io::Error> {
     let config = Config::load();
     let container: Container = init_app(&config).await;
+
+    let ur: &dyn UserRepoIf = container.resolve_ref();
+    ur.username_exists("123").await;
 
     let bind_addr = format!("{}:{}", &config.host, &config.port);
     let allowed_origin = format!("{}://{}:{}", &config.proto, &config.host, &config.port);
