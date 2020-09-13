@@ -4,7 +4,7 @@ extern crate proc_macro;
 
 use crate::util::{applied_to_struct, extract_helpers, parse_struct_name};
 use darling::FromMeta;
-use proc_macro::{TokenStream, TokenTree};
+use proc_macro::{TokenStream};
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use quote::quote;
 use syn::{parse_macro_input, AttributeArgs};
@@ -67,7 +67,7 @@ pub fn has_logger(input: TokenStream) -> TokenStream {
 
     let name = &ast.ident;
 
-    let mut helpers = extract_helpers(
+    let helpers = extract_helpers(
         &ast,
         "logger",
         "`#[derive(HasLogger)]` must be applied to struct",
@@ -79,8 +79,8 @@ pub fn has_logger(input: TokenStream) -> TokenStream {
 
     let (logger_field, _) = helpers.get(0).unwrap();
 
-    let bb: Vec<String> = helpers.iter().map(|(x, y)| format!("{}", x)).collect();
-    let bbb: String = bb.join(",");
+    let bb: Vec<String> = helpers.iter().map(|(x, _y)| format!("{}", x)).collect();
+    let _bbb: String = bb.join(",");
 
     let tt = quote! {
         impl HasLogger for #name {

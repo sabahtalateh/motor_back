@@ -42,9 +42,6 @@ async fn main() -> Result<(), io::Error> {
     let config = Config::load();
     let container: Container = init_app(&config).await;
 
-    let ur: &dyn UserRepoIf = container.resolve_ref();
-    ur.username_exists("123").await;
-
     let bind_addr = format!("{}:{}", &config.host, &config.port);
     let allowed_origin = format!("{}://{}:{}", &config.proto, &config.host, &config.port);
 

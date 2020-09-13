@@ -3,7 +3,7 @@ use crate::repos::users::UserRepoIf;
 use crate::services::check::CheckServiceIf;
 use crate::utils::{AppResult, IntoAppErr, LogOnErr};
 use async_trait::async_trait;
-use bcrypt::{hash, verify, DEFAULT_COST};
+use bcrypt::{hash, DEFAULT_COST};
 use proc_macro::HasLogger;
 use shaku::{Component, Interface};
 use slog::Logger;
