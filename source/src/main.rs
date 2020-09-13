@@ -34,8 +34,6 @@ use actix_cors::Cors;
 use actix_web::{http::header, http::Method, middleware, App, HttpServer};
 use std::io;
 use std::sync::Arc;
-use crate::repos::users::UserRepoIf;
-use shaku::HasComponent;
 
 #[actix_rt::main]
 async fn main() -> Result<(), io::Error> {
