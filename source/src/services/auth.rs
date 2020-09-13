@@ -6,7 +6,7 @@ use crate::services::check::CheckServiceIf;
 use crate::utils::{AppResult, IntoAppErr, LogOnErr};
 use async_trait::async_trait;
 use bcrypt::{hash, verify, DEFAULT_COST};
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Duration, Utc};
 use proc_macro::HasLogger;
 use shaku::{Component, Interface};
 use slog::Logger;
@@ -56,21 +56,26 @@ impl AuthServiceIf for AuthService {
         }
 
         let current_time = Utc::now();
+        let access_lifetime =
+            (current_time.timestamp() + self.access_token_lifetime.num_seconds()) as i32;
+        let refresh_lifetime =
+            (current_time.timestamp() + self.refresh_token_lifetime.num_seconds()) as i32;
 
-        let tokens = TokenPair {
+        let mut tokens = TokenPair {
             access: Uuid::new_v4().to_string().replace("-", ""),
             refresh: Uuid::new_v4().to_string().replace("-", ""),
-            access_lifetime_secs: (current_time.timestamp()
-                + self.access_token_lifetime.num_seconds())
-                as i32,
-            refresh_lifetime_secs: (current_time.timestamp()
-                + self.refresh_token_lifetime.num_seconds())
-                as i32,
+            access_lifetime_secs: access_lifetime,
+            refresh_lifetime_secs: refresh_lifetime,
             created_at: current_time,
             user_id: user.id.into(),
         };
 
-        self.tokens_repo.insert(&tokens).await;
+        self.tokens_repo.insert(&tokens).await?;
+
+        tokens.access_lifetime_secs =
+            tokens.access_lifetime_secs - current_time.timestamp() as i32;
+        tokens.refresh_lifetime_secs =
+            tokens.refresh_lifetime_secs - current_time.timestamp() as i32;
 
         Ok(tokens)
     }
