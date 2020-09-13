@@ -17,10 +17,11 @@ proc_macro_derive = { path = "../proc_macro/proc_macro_derive" }
 async-trait = "0.1.40"
 
 # ну бля это актикс ёбана
-actix-cors = "0.2.0"
+actix-cors = "0.3.0"
 actix-rt = "1.1.1"
 actix-service = "1.0.6"
-actix-web = "2.0.0"
+#actix-web = "2.0.0"
+actix-web = "3.0.1"
 
 # датавремя
 chrono = { version = "0.4.15", features = ["serde"] }
