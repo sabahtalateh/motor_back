@@ -1,3 +1,4 @@
+use crate::config::ConfigIf;
 use crate::handlers::Context;
 use crate::repos::tokens::TokenPair;
 use crate::services::auth::AuthServiceIf;
@@ -20,7 +21,8 @@ impl Mutation {
         auth.login(username, password).await
     }
 
-    pub async fn api_version(_ctx: &Context) -> String {
-        "1".to_string()
+    pub async fn api_version(ctx: &Context) -> String {
+        let config: &dyn ConfigIf = ctx.ctr.resolve_ref();
+        config.api_version()
     }
 }

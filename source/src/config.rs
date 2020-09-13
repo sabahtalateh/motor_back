@@ -6,7 +6,9 @@ use slog::Level;
 use std::env;
 use std::str::FromStr;
 
-pub trait ConfigIf: Interface {}
+pub trait ConfigIf: Interface {
+    fn api_version(&self) -> String;
+}
 
 #[derive(Component, Clone)]
 #[shaku(interface = ConfigIf)]
@@ -37,7 +39,11 @@ pub struct Config {
     pub app_logger_level: Level,
 }
 
-impl ConfigIf for Config {}
+impl ConfigIf for Config {
+    fn api_version(&self) -> String {
+        self.api_version.clone()
+    }
+}
 
 impl Config {
     pub fn load() -> Self {
