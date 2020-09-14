@@ -13,7 +13,7 @@ use bson::oid::ObjectId;
 
 #[async_trait]
 pub trait UsersRepoIf: Interface {
-    async fn insert(&self, new_user: NewUser) -> AppResult<()>;
+    async fn insert(&self, new_user: &NewUser) -> AppResult<()>;
     async fn username_exists(&self, username: &str) -> AppResult<bool>;
     async fn find_by_username(&self, username: &str) -> AppResult<User>;
 }
@@ -45,8 +45,8 @@ pub struct User {
 
 #[async_trait]
 impl UsersRepoIf for UsersRepo {
-    async fn insert(&self, new_user: NewUser) -> AppResult<()> {
-        let inserting_doc: Document = bson::to_bson(&new_user)
+    async fn insert(&self, new_user: &NewUser) -> AppResult<()> {
+        let inserting_doc: Document = bson::to_bson(new_user)
         .unwrap()
         .as_document()
         .unwrap()

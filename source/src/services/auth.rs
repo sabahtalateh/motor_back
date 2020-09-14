@@ -89,7 +89,7 @@ impl AuthServiceIf for AuthService {
             .into_app_err()?;
 
         self.user_repo
-            .insert(NewUser {
+            .insert(&NewUser {
                 username: login,
                 password: encrypted_password,
             })

@@ -1,5 +1,6 @@
 pub mod tokens;
 pub mod users;
+pub mod stack;
 
 use bson::oid::ObjectId;
 use juniper::ID;

@@ -1,18 +1,16 @@
 use crate::db::DBIf;
-
 use crate::logger::AppLoggerIf;
+use crate::repos::Id;
 use crate::utils::{AppResult, IntoAppErr, LogOnErr};
 use async_trait::async_trait;
-
 use bson::Document;
 use chrono::{DateTime, Utc};
+use juniper::GraphQLObject;
 use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
-use juniper::GraphQLObject;
-use crate::repos::Id;
 
 #[async_trait]
 pub trait TokensRepoIf: Interface {

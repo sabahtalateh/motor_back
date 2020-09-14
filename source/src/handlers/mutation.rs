@@ -9,6 +9,11 @@ pub struct Mutation {}
 
 #[juniper::graphql_object(Context = Context)]
 impl Mutation {
+    pub async fn api_version(ctx: &Context) -> String {
+        let config: &dyn ConfigIf = ctx.ctr.resolve_ref();
+        config.api_version()
+    }
+
     pub async fn register(username: String, password: String, ctx: &Context) -> AppResult<String> {
         let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();
         auth.register(username, password)
@@ -21,8 +26,8 @@ impl Mutation {
         auth.login(username, password).await
     }
 
-    pub async fn api_version(ctx: &Context) -> String {
-        let config: &dyn ConfigIf = ctx.ctr.resolve_ref();
-        config.api_version()
+    pub async fn stack(ctx: &Context) -> String {
+
+        "123".to_string()
     }
 }
