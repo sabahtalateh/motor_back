@@ -25,7 +25,7 @@ pub struct TokensRepo {
 
     #[logger]
     #[shaku(inject)]
-    pub app_logger: Arc<dyn AppLoggerIf>,
+    app_logger: Arc<dyn AppLoggerIf>,
 }
 
 #[derive(Serialize, Deserialize, GraphQLObject)]

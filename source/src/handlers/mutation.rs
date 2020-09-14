@@ -26,7 +26,7 @@ impl Mutation {
         auth.login(username, password).await
     }
 
-    pub async fn stack(ctx: &Context) -> String {
+    pub async fn stack(_ctx: &Context) -> String {
 
         "123".to_string()
     }

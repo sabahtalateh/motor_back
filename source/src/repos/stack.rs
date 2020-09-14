@@ -1,9 +1,7 @@
 use crate::db::DBIf;
-use crate::errors::AppError;
 use crate::logger::AppLoggerIf;
 use crate::utils::{AppResult, IntoAppErr, LogOnErr};
 use async_trait::async_trait;
-use bson::oid::ObjectId;
 use bson::Document;
 use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};

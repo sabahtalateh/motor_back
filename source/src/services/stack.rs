@@ -1,18 +1,12 @@
-use crate::errors::AppError;
 use crate::logger::AppLoggerIf;
 use crate::repos::stack::StackRepoIf;
-use crate::repos::tokens::{TokenPair, TokensRepoIf};
-use crate::repos::users::{NewUser, UsersRepoIf};
-use crate::services::check::CheckServiceIf;
-use crate::utils::{AppResult, IntoAppErr, LogOnErr};
+use crate::utils::{AppResult};
 use async_trait::async_trait;
-use bcrypt::{hash, verify, DEFAULT_COST};
-use chrono::{Duration, Utc};
 use proc_macro::HasLogger;
 use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
-use uuid::Uuid;
+
 
 #[async_trait]
 pub trait StackServiceIf: Interface {
@@ -32,7 +26,7 @@ pub struct StackService {
 
 #[async_trait]
 impl StackServiceIf for StackService {
-    async fn stack(&self, short: &str) -> AppResult<()> {
+    async fn stack(&self, _short: &str) -> AppResult<()> {
         unimplemented!()
     }
 }
