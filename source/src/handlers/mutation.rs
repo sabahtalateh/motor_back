@@ -1,8 +1,10 @@
 use crate::config::ConfigIf;
 use crate::handlers::Context;
+use crate::repos::stack::StackItem;
 use crate::repos::tokens::TokenPair;
 use crate::services::auth::AuthServiceIf;
-use crate::utils::AppResult;
+use crate::services::stack::StackServiceIf;
+use crate::utils::{AppResult, OkOrUnauthorized};
 use shaku::HasComponent;
 
 pub struct Mutation {}
@@ -26,8 +28,13 @@ impl Mutation {
         auth.login(username, password).await
     }
 
-    pub async fn stack(_ctx: &Context) -> String {
-
-        "123".to_string()
+    pub async fn stack(access: String, short: String, ctx: &Context) -> AppResult<StackItem> {
+        let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();
+        let user = auth
+            .find_user_by_access(access)
+            .await
+            .ok_or_unauthorized()?;
+        let stack_service: &dyn StackServiceIf = ctx.ctr.resolve_ref();
+        Ok(stack_service.stack(user, short).await)
     }
 }

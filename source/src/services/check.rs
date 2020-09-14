@@ -8,7 +8,7 @@ use std::sync::Arc;
 #[async_trait]
 pub trait CheckServiceIf: Interface {
     fn strong_password(&self, password: &str) -> AppResult<()>;
-    async fn username_exists(&self, username: &str) -> AppResult<()>;
+    async fn username_exists(&self, username: &str) -> bool;
 }
 
 #[derive(Component)]
@@ -35,13 +35,10 @@ impl CheckServiceIf for CheckService {
         }
     }
 
-    async fn username_exists(&self, username: &str) -> AppResult<()> {
-        if false == self.user_repo.username_exists(username).await? {
-            Ok(())
-        } else {
-            Err(AppError::check(
-                format!("Username `{}` already taken", username).as_str(),
-            ))
+    async fn username_exists(&self, username: &str) -> bool {
+        match self.user_repo.find_by_username(username).await {
+            Some(_) => true,
+            None => false,
         }
     }
 }

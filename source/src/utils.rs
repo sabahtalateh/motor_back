@@ -1,27 +1,54 @@
-use slog::Logger;
-
 use crate::errors::AppError;
+use bson::Document;
+use serde::de::DeserializeOwned;
+use slog::{Logger, Never, SendSyncRefUnwindSafeDrain};
+use std::sync::Arc;
 
 pub type AppResult<T> = Result<T, AppError>;
 
-///
-/// Трэйт чтобы логировать ошибки
-///
-pub trait LogOnErr<T, E> {
-    fn log_on_err(self, logger: &Logger) -> Result<T, E>;
+pub fn deserialize_bson<T>(bson: &Document) -> T
+where
+    T: DeserializeOwned,
+{
+    bson::from_bson(bson::to_bson(&bson).unwrap()).unwrap()
 }
 
-impl<T, E> LogOnErr<T, E> for Result<T, E>
+///
+/// Трэйт чтобы логировать ошибки в Result
+///
+pub trait LogErrWith<T, E> {
+    fn log_err_with(self, logger: &Logger) -> Result<T, E>;
+}
+
+impl<T, E> LogErrWith<T, E> for Result<T, E>
 where
     E: std::fmt::Display,
 {
-    fn log_on_err(self, logger: &Logger) -> Result<T, E> {
+    fn log_err_with(self, logger: &Logger) -> Result<T, E> {
         match self {
             Ok(ok) => Ok(ok),
             Err(e) => {
                 slog_error!(logger, "{}", e);
                 Err(e)
             }
+        }
+    }
+}
+
+///
+/// Трэйт чтобы логировать ошибки в Option
+///
+pub trait OkOrMongoRecordId<T> {
+    fn ok_or_mongo_record_id(self) -> AppResult<T>;
+}
+
+impl<T> OkOrMongoRecordId<T> for Option<T> {
+    fn ok_or_mongo_record_id(self) -> AppResult<T> {
+        match self {
+            Some(v) => Ok(v),
+            None => Err(AppError::other_error(
+                "Mongo inserted record id is not of `ObjectId` type",
+            )),
         }
     }
 }
@@ -38,6 +65,24 @@ impl<T, E> IntoAppErr<T> for Result<T, E> {
         match self {
             Ok(ok) => Ok(ok),
             Err(_) => Err(AppError::internal_server_error()),
+        }
+    }
+}
+
+
+///
+/// Если пользователь не найден
+/// Обычно в контроллере первой строчкой
+///
+pub trait OkOrUnauthorized<T> {
+    fn ok_or_unauthorized(self) -> AppResult<T>;
+}
+
+impl<T> OkOrUnauthorized<T> for Option<T> {
+    fn ok_or_unauthorized(self) -> AppResult<T> {
+        match self {
+            Some(v) => Ok(v),
+            None => Err(AppError::unauthorized()),
         }
     }
 }

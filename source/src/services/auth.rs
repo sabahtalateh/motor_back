@@ -1,9 +1,9 @@
 use crate::errors::AppError;
 use crate::logger::AppLoggerIf;
 use crate::repos::tokens::{TokenPair, TokensRepoIf};
-use crate::repos::users::{NewUser, UsersRepoIf};
+use crate::repos::users::{NewUser, User, UsersRepoIf};
 use crate::services::check::CheckServiceIf;
-use crate::utils::{AppResult, IntoAppErr, LogOnErr};
+use crate::utils::{AppResult, IntoAppErr, LogErrWith};
 use async_trait::async_trait;
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::{Duration, Utc};
@@ -17,13 +17,14 @@ use uuid::Uuid;
 pub trait AuthServiceIf: Interface {
     async fn login(&self, username: String, password: String) -> AppResult<TokenPair>;
     async fn register(&self, login: String, password: String) -> AppResult<()>;
+    async fn find_user_by_access(&self, access: String) -> Option<User>;
 }
 
 #[derive(Component, HasLogger)]
 #[shaku(interface = AuthServiceIf)]
 pub struct AuthService {
     #[shaku(inject)]
-    user_repo: Arc<dyn UsersRepoIf>,
+    users_repo: Arc<dyn UsersRepoIf>,
 
     #[shaku(inject)]
     tokens_repo: Arc<dyn TokensRepoIf>,
@@ -46,13 +47,13 @@ pub struct AuthService {
 impl AuthServiceIf for AuthService {
     async fn login(&self, username: String, password: String) -> AppResult<TokenPair> {
         let user = self
-            .user_repo
+            .users_repo
             .find_by_username(username.as_str())
             .await
-            .map_err(|_| AppError::unauthorized("Login Failed"))?;
+            .ok_or(AppError::login_failed())?;
 
         if !verify(password, &user.password).into_app_err()? {
-            return Err(AppError::unauthorized("Login Failed"));
+            return Err(AppError::login_failed());
         }
 
         let current_time = Utc::now();
@@ -70,10 +71,9 @@ impl AuthServiceIf for AuthService {
             user_id: user.id.into(),
         };
 
-        self.tokens_repo.insert(&tokens).await?;
+        self.tokens_repo.insert(&tokens).await;
 
-        tokens.access_lifetime_secs =
-            tokens.access_lifetime_secs - current_time.timestamp() as i32;
+        tokens.access_lifetime_secs = tokens.access_lifetime_secs - current_time.timestamp() as i32;
         tokens.refresh_lifetime_secs =
             tokens.refresh_lifetime_secs - current_time.timestamp() as i32;
 
@@ -82,17 +82,28 @@ impl AuthServiceIf for AuthService {
 
     async fn register(&self, login: String, password: String) -> AppResult<()> {
         self.check_service.strong_password(password.as_str())?;
-        self.check_service.username_exists(login.as_str()).await?;
+        if self.check_service.username_exists(login.as_str()).await {
+            return Err(AppError::check(
+                format!("Username `{}` already taken", login).as_str(),
+            ));
+        }
 
         let encrypted_password = hash(password, DEFAULT_COST)
-            .log_on_err(self.logger())
+            .log_err_with(self.logger())
             .into_app_err()?;
 
-        self.user_repo
+        self.users_repo
             .insert(&NewUser {
                 username: login,
                 password: encrypted_password,
             })
-            .await
+            .await;
+
+        Ok(())
+    }
+
+    async fn find_user_by_access(&self, access: String) -> Option<User> {
+        let token = self.tokens_repo.find_by_access(access).await?;
+        self.users_repo.find(token.user_id).await
     }
 }

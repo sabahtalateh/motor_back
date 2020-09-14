@@ -1,7 +1,8 @@
 use crate::db::DBIf;
 use crate::errors::AppError;
 use crate::logger::AppLoggerIf;
-use crate::utils::{AppResult, IntoAppErr, LogOnErr};
+use crate::repos::Id;
+use crate::utils::{deserialize_bson, AppResult, IntoAppErr, LogErrWith};
 use async_trait::async_trait;
 use bson::oid::ObjectId;
 use bson::Document;
@@ -13,9 +14,9 @@ use std::sync::Arc;
 
 #[async_trait]
 pub trait UsersRepoIf: Interface {
-    async fn insert(&self, new_user: &NewUser) -> AppResult<()>;
-    async fn username_exists(&self, username: &str) -> AppResult<bool>;
-    async fn find_by_username(&self, username: &str) -> AppResult<User>;
+    async fn find(&self, id: Id) -> Option<User>;
+    async fn insert(&self, new_user: &NewUser);
+    async fn find_by_username(&self, username: &str) -> Option<User>;
 }
 
 #[shaku(interface = UsersRepoIf)]
@@ -38,14 +39,28 @@ pub struct NewUser {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct User {
     #[serde(rename = "_id")]
-    pub id: ObjectId,
+    pub id: Id,
     pub username: String,
     pub password: String,
 }
 
 #[async_trait]
 impl UsersRepoIf for UsersRepo {
-    async fn insert(&self, new_user: &NewUser) -> AppResult<()> {
+    async fn find(&self, id: Id) -> Option<User> {
+        let id: ObjectId = id.into();
+
+        self.db
+            .get()
+            .collection("users")
+            .find_one(Some(doc! {"_id": id}), None)
+            .await
+            .log_err_with(self.logger())
+            .into_app_err()
+            .unwrap()
+            .map(|u| deserialize_bson(&u))
+    }
+
+    async fn insert(&self, new_user: &NewUser) {
         let inserting_doc: Document = bson::to_bson(new_user)
             .unwrap()
             .as_document()
@@ -57,38 +72,19 @@ impl UsersRepoIf for UsersRepo {
             .collection("users")
             .insert_one(inserting_doc, None)
             .await
-            .map(|_| Ok(()))
-            .log_on_err(self.logger())
-            .into_app_err()?
+            .log_err_with(self.logger())
+            .unwrap();
     }
 
-    async fn username_exists(&self, username: &str) -> AppResult<bool> {
-        match &self
-            .db
+    async fn find_by_username(&self, username: &str) -> Option<User> {
+        self.db
             .get()
             .collection("users")
             .find_one(Some(doc! {"username": username}), None)
             .await
-            .log_on_err(self.logger())
-            .into_app_err()?
-        {
-            Some(_) => Ok(true),
-            None => Ok(false),
-        }
-    }
-
-    async fn find_by_username(&self, username: &str) -> AppResult<User> {
-        match &self
-            .db
-            .get()
-            .collection("users")
-            .find_one(Some(doc! {"username": username}), None)
-            .await
-            .log_on_err(self.logger())
-            .into_app_err()?
-        {
-            Some(doc) => Ok(bson::from_bson(bson::to_bson(doc).unwrap()).unwrap()),
-            None => Err(AppError::not_found("No user found")),
-        }
+            .log_err_with(self.logger())
+            .into_app_err()
+            .unwrap()
+            .map(|u| deserialize_bson(&u))
     }
 }

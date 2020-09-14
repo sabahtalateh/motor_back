@@ -1,8 +1,9 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::repos::Id;
-use crate::utils::{AppResult, IntoAppErr, LogOnErr};
+use crate::utils::{deserialize_bson, AppResult, IntoAppErr, LogErrWith};
 use async_trait::async_trait;
+use bson::oid::ObjectId;
 use bson::Document;
 use chrono::{DateTime, Utc};
 use juniper::GraphQLObject;
@@ -14,7 +15,8 @@ use std::sync::Arc;
 
 #[async_trait]
 pub trait TokensRepoIf: Interface {
-    async fn insert(&self, tokens: &TokenPair) -> AppResult<()>;
+    async fn find_by_access(&self, access: String) -> Option<TokenPair>;
+    async fn insert(&self, tokens: &TokenPair);
 }
 
 #[shaku(interface = TokensRepoIf)]
@@ -28,7 +30,7 @@ pub struct TokensRepo {
     app_logger: Arc<dyn AppLoggerIf>,
 }
 
-#[derive(Serialize, Deserialize, GraphQLObject)]
+#[derive(Debug, Clone, Serialize, Deserialize, GraphQLObject)]
 pub struct TokenPair {
     pub access: String,
     pub refresh: String,
@@ -42,7 +44,19 @@ pub struct TokenPair {
 
 #[async_trait]
 impl TokensRepoIf for TokensRepo {
-    async fn insert(&self, tokens: &TokenPair) -> AppResult<()> {
+    async fn find_by_access(&self, access: String) -> Option<TokenPair> {
+        self.db
+            .get()
+            .collection("tokens")
+            .find_one(Some(doc! {"access": access}), None)
+            .await
+            .log_err_with(self.logger())
+            .into_app_err()
+            .unwrap()
+            .map(|x| deserialize_bson(&x))
+    }
+
+    async fn insert(&self, tokens: &TokenPair) {
         let inserting_doc: Document = bson::to_bson(&tokens)
             .unwrap()
             .as_document()
@@ -54,8 +68,7 @@ impl TokensRepoIf for TokensRepo {
             .collection("tokens")
             .insert_one(inserting_doc, None)
             .await
-            .map(|_| Ok(()))
-            .log_on_err(self.logger())
-            .into_app_err()?
+            .log_err_with(self.logger())
+            .unwrap();
     }
 }

@@ -1,8 +1,12 @@
 use crate::db::DBIf;
+use crate::errors::AppError;
 use crate::logger::AppLoggerIf;
-use crate::utils::{AppResult, IntoAppErr, LogOnErr};
+use crate::repos::Id;
+use crate::utils::{AppResult, IntoAppErr, LogErrWith, OkOrMongoRecordId};
 use async_trait::async_trait;
-use bson::Document;
+use bson::oid::ObjectId;
+use bson::{Bson, Document};
+use juniper::GraphQLObject;
 use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
@@ -11,7 +15,7 @@ use std::sync::Arc;
 
 #[async_trait]
 pub trait StackRepoIf: Interface {
-    async fn insert(&self, short: &str) -> AppResult<()>;
+    async fn insert(&self, stack_item: NewStackItem) -> StackItem;
 }
 
 #[shaku(interface = StackRepoIf)]
@@ -25,31 +29,46 @@ pub struct StackRepo {
     app_logger: Arc<dyn AppLoggerIf>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
+pub struct NewStackItem {
+    pub short: String,
+    pub user_id: Id,
+}
+
+#[derive(Deserialize, Debug, GraphQLObject)]
 pub struct StackItem {
-    short: String,
+    #[serde(rename = "_id")]
+    pub id: Id,
+    pub short: String,
 }
 
 #[async_trait]
 impl StackRepoIf for StackRepo {
-    async fn insert(&self, short: &str) -> AppResult<()> {
-        let inserting_doc: Document = bson::to_bson(&StackItem {
-            short: short.to_string(),
-        })
-        .unwrap()
-        .as_document()
-        .unwrap()
-        .clone();
+    async fn insert(&self, stack_item: NewStackItem) -> StackItem {
+        let doc: Document = bson::to_bson(&stack_item)
+            .unwrap()
+            .as_document()
+            .unwrap()
+            .clone();
 
-        &self
+        let id = self
             .db
             .get()
             .collection("stack")
-            .insert_one(inserting_doc, None)
+            .insert_one(doc, None)
             .await
-            .log_on_err(self.logger())
-            .into_app_err();
+            .map(|ok| ok.inserted_id)
+            .log_err_with(self.logger())
+            .unwrap()
+            .as_object_id()
+            .ok_or_mongo_record_id()
+            .log_err_with(self.logger())
+            .unwrap()
+            .clone();
 
-        Ok(())
+        StackItem {
+            id: id.into(),
+            short: stack_item.short,
+        }
     }
 }

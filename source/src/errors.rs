@@ -1,5 +1,7 @@
 use juniper::{graphql_value, FieldError, IntoFieldError};
 
+use juniper::sa::_core::fmt::Formatter;
+use std::fmt;
 use AppErrorType::*;
 
 #[derive(Debug, Clone)]
@@ -8,6 +10,7 @@ pub enum AppErrorType {
     Unauthorized,
     InternalServerError,
     CheckError,
+    OtherError,
 }
 
 impl ToString for AppErrorType {
@@ -17,6 +20,7 @@ impl ToString for AppErrorType {
             Unauthorized => "unauthorized",
             InternalServerError => "internal_server_error",
             CheckError => "check_error",
+            OtherError => "other_error",
         }
         .to_string()
     }
@@ -28,12 +32,6 @@ pub struct AppError {
     error_type: AppErrorType,
 }
 
-#[derive(Debug, Clone)]
-struct ApiError {
-    message: String,
-    error_type: String,
-}
-
 impl AppError {
     fn new(message: &str, error_type: AppErrorType) -> AppError {
         AppError {
@@ -42,12 +40,12 @@ impl AppError {
         }
     }
 
-    pub fn unauthorized_default() -> AppError {
-        AppError::new("unauthorized", AppErrorType::Unauthorized)
+    pub fn unauthorized() -> AppError {
+        AppError::new("Unauthorized", AppErrorType::Unauthorized)
     }
 
-    pub fn unauthorized(message: &str) -> AppError {
-        AppError::new(message, AppErrorType::Unauthorized)
+    pub fn login_failed() -> AppError {
+        AppError::new("Login Failed", AppErrorType::Unauthorized)
     }
 
     pub fn not_found(message: &str) -> AppError {
@@ -60,6 +58,16 @@ impl AppError {
 
     pub fn internal_server_error() -> AppError {
         AppError::new("internal server error", AppErrorType::InternalServerError)
+    }
+
+    pub fn other_error(message: &str) -> AppError {
+        AppError::new(message, AppErrorType::OtherError)
+    }
+}
+
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_string())
     }
 }
 
