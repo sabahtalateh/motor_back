@@ -1,7 +1,6 @@
 use crate::logger::AppLoggerIf;
 use crate::repos::stack::{NewStackItem, StackItem, StackRepoIf};
 use crate::repos::users::User;
-use crate::utils::AppResult;
 use async_trait::async_trait;
 use proc_macro::HasLogger;
 use shaku::{Component, Interface};

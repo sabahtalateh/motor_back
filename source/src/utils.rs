@@ -1,8 +1,8 @@
 use crate::errors::AppError;
 use bson::Document;
 use serde::de::DeserializeOwned;
-use slog::{Logger, Never, SendSyncRefUnwindSafeDrain};
-use std::sync::Arc;
+use slog::Logger;
+
 
 pub type AppResult<T> = Result<T, AppError>;
 

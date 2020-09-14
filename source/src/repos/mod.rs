@@ -4,8 +4,7 @@ pub mod users;
 
 use bson::oid::ObjectId;
 use juniper::GraphQLScalarValue;
-use juniper::ID;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Clone, Debug, GraphQLScalarValue)]
 pub struct Id(String);
