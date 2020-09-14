@@ -3,13 +3,13 @@ use crate::errors::AppError;
 use crate::logger::AppLoggerIf;
 use crate::utils::{AppResult, IntoAppErr, LogOnErr};
 use async_trait::async_trait;
+use bson::oid::ObjectId;
 use bson::Document;
 use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
-use bson::oid::ObjectId;
 
 #[async_trait]
 pub trait UsersRepoIf: Interface {
@@ -26,7 +26,7 @@ pub struct UsersRepo {
 
     #[logger]
     #[shaku(inject)]
-    pub app_logger: Arc<dyn AppLoggerIf>,
+    app_logger: Arc<dyn AppLoggerIf>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -47,10 +47,10 @@ pub struct User {
 impl UsersRepoIf for UsersRepo {
     async fn insert(&self, new_user: &NewUser) -> AppResult<()> {
         let inserting_doc: Document = bson::to_bson(new_user)
-        .unwrap()
-        .as_document()
-        .unwrap()
-        .clone();
+            .unwrap()
+            .as_document()
+            .unwrap()
+            .clone();
 
         self.db
             .get()
