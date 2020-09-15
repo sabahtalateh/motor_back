@@ -3,16 +3,16 @@
 Ставится над структурой которую надо ложить в контейнер с сервисами
 ```
 #[service(name = "zhopa")]
-struct Hui {
+struct Ass {
     size: bigint
 }
 ```
 скомпилячится в 
 ```
-struct Hui {
+struct Ass {
     size: bigint
 }
-impl Service for Hui {
+impl Service for Ass {
     fn name() -> String {
         return "zhopa".to_string();
     }

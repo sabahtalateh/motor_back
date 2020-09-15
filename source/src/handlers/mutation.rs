@@ -20,7 +20,7 @@ impl Mutation {
         let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();
         auth.register(username, password)
             .await
-            .map(|_| Ok("ok".to_string()))?
+            .map(|_| Ok("ok".to_string())) ?
     }
 
     pub async fn login(username: String, password: String, ctx: &Context) -> AppResult<TokenPair> {
