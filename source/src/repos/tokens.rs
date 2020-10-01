@@ -14,7 +14,8 @@ use std::sync::Arc;
 
 #[async_trait]
 pub trait TokensRepoIf: Interface {
-    async fn find_by_access(&self, access: String) -> Option<TokenPair>;
+    async fn find_by_access(&self, access: &str) -> Option<TokenPair>;
+    async fn find_by_refresh(&self, refresh: &str) -> Option<TokenPair>;
     async fn insert(&self, tokens: &TokenPair);
 }
 
@@ -33,8 +34,8 @@ pub struct TokensRepo {
 pub struct TokenPair {
     pub access: String,
     pub refresh: String,
-    pub access_lifetime_secs: i32,
-    pub refresh_lifetime_secs: i32,
+    pub access_lifetime: DateTime<Utc>,
+    pub refresh_lifetime: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
 
     #[graphql(skip)]
@@ -43,11 +44,23 @@ pub struct TokenPair {
 
 #[async_trait]
 impl TokensRepoIf for TokensRepo {
-    async fn find_by_access(&self, access: String) -> Option<TokenPair> {
+    async fn find_by_access(&self, access: &str) -> Option<TokenPair> {
         self.db
             .get()
             .collection("tokens")
             .find_one(Some(doc! {"access": access}), None)
+            .await
+            .log_err_with(self.logger())
+            .into_app_err()
+            .unwrap()
+            .map(|x| deserialize_bson(&x))
+    }
+
+    async fn find_by_refresh(&self, refresh: &str) -> Option<TokenPair> {
+        self.db
+            .get()
+            .collection("tokens")
+            .find_one(Some(doc! {"refresh": refresh}), None)
             .await
             .log_err_with(self.logger())
             .into_app_err()

@@ -10,6 +10,7 @@ use std::sync::Arc;
 #[async_trait]
 pub trait StackServiceIf: Interface {
     async fn stack(&self, user: User, short: String) -> StackItem;
+    async fn my_stack(&self, user: User) -> Vec<StackItem>;
 }
 
 #[shaku(interface = StackServiceIf)]
@@ -32,5 +33,14 @@ impl StackServiceIf for StackService {
                 user_id: user.id,
             })
             .await
+    }
+
+    async fn my_stack(&self, user: User) -> Vec<StackItem> {
+        self.stack_repo.find_by_user_id(user.id).await
+
+        // vec![
+        //     "1".to_string(),
+        //     "2".to_string()
+        // ]
     }
 }

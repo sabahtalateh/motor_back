@@ -1,27 +1,22 @@
 use crate::config::ConfigIf;
 use crate::handlers::Context;
+use crate::repos::stack::StackItem;
+use crate::services::auth::AuthServiceIf;
+use crate::services::stack::StackServiceIf;
+use crate::utils::AppResult;
+use chrono::Utc;
 use shaku::HasComponent;
 
 pub struct Query {}
 
 #[juniper::graphql_object(Context = Context)]
 impl Query {
-    pub async fn stack(_ctx: &Context) -> Vec<String> {
-        // let date_logger: &dyn DateLogger = module.resolve_ref();
-        // let service: Box<dyn Service> = context.container.provide().unwrap();
-        // println!("-{}-", service.get_double());
+    pub async fn my_stack(access: String, ctx: &Context) -> AppResult<Vec<StackItem>> {
+        let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();
+        let user = auth.validate_access(&access, Utc::now()).await?;
 
-        // let service: Box<dyn Service> = context.m.
-        // let mm = Arc::clone(&context.m).provider();
-        // service.get_double();
-
-        // let m_a: Arc<ExampleModule> = Arc::clone(&context.m);
-        // let service: Box<dyn Service> = m_a.provide().unwrap();
-        // service.get_double();
-
-        // context.container.service()
-
-        vec!["1".to_string(), "2".to_string()]
+        let stack_service: &dyn StackServiceIf = ctx.ctr.resolve_ref();
+        Ok(stack_service.my_stack(user).await)
     }
 
     pub async fn api_version(ctx: &Context) -> String {

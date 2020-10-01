@@ -1,7 +1,7 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::repos::Id;
-use crate::utils::{LogErrWith, OkOrMongoRecordId};
+use crate::utils::{LogErrWith, OkOrMongoRecordId, IntoAppErr, deserialize_bson};
 use async_trait::async_trait;
 use bson::{Document};
 use juniper::GraphQLObject;
@@ -10,10 +10,13 @@ use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
+use bson::oid::ObjectId;
+use juniper::futures::StreamExt;
 
 #[async_trait]
 pub trait StackRepoIf: Interface {
     async fn insert(&self, stack_item: NewStackItem) -> StackItem;
+    async fn find_by_user_id(&self, user_id: Id) -> Vec<StackItem>;
 }
 
 #[shaku(interface = StackRepoIf)]
@@ -68,5 +71,22 @@ impl StackRepoIf for StackRepo {
             id: id.into(),
             short: stack_item.short,
         }
+    }
+
+    async fn find_by_user_id(&self, user_id: Id) -> Vec<StackItem> {
+        let user_id: ObjectId = user_id.into();
+
+        self.db
+            .get()
+            .collection("stack")
+            .find(Some(doc! {"user_id": user_id}), None)
+            .await
+            .log_err_with(self.logger())
+            .into_app_err()
+            .unwrap()
+            .map(|x| deserialize_bson(&x.unwrap()))
+            .collect()
+            .await
+            // .unwrap()
     }
 }

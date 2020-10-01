@@ -27,12 +27,6 @@ impl From<ObjectId> for Id {
     }
 }
 
-// impl From<Id> for ID {
-//     fn from(id: Id) -> Self {
-//         ID::new(id.0)
-//     }
-// }
-
 impl<'de> Deserialize<'de> for Id {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

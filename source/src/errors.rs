@@ -8,6 +8,7 @@ use AppErrorType::*;
 pub enum AppErrorType {
     NotFound,
     Unauthorized,
+    AccessExpired,
     InternalServerError,
     CheckError,
     OtherError,
@@ -18,6 +19,7 @@ impl ToString for AppErrorType {
         match self {
             NotFound => "not_found",
             Unauthorized => "unauthorized",
+            AccessExpired => "access_expired",
             InternalServerError => "internal_server_error",
             CheckError => "check_error",
             OtherError => "other_error",
@@ -42,6 +44,10 @@ impl AppError {
 
     pub fn unauthorized() -> AppError {
         AppError::new("Unauthorized", AppErrorType::Unauthorized)
+    }
+
+    pub fn access_expire() -> AppError {
+        AppError::new("Access Expired", AppErrorType::AccessExpired)
     }
 
     pub fn login_failed() -> AppError {

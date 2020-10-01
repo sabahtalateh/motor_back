@@ -48,6 +48,7 @@ async fn main() -> Result<(), io::Error> {
     HttpServer::new(move || {
         let cors = Cors::new()
             .allowed_origin(&allowed_origin)
+            .allowed_origin("http://127.0.0.1:9988")
             .allowed_methods(vec![Method::GET, Method::OPTIONS, Method::POST])
             .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
             .allowed_header(header::CONTENT_TYPE)
