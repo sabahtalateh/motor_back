@@ -4,13 +4,31 @@ mod query;
 use crate::container::Container;
 use crate::handlers::mutation::Mutation;
 use crate::handlers::query::Query;
-use actix_web::{web, HttpResponse};
 
+use actix_web::{web, HttpResponse};
 use juniper::http::graphiql::graphiql_source;
 use juniper::http::GraphQLRequest;
-use juniper::{EmptySubscription, RootNode};
-
+use juniper::{EmptySubscription, GraphQLInputObject, RootNode};
+use serde::Serialize;
 use std::sync::Arc;
+
+#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+pub struct Mark {
+    pub from: i32,
+    pub to: i32,
+}
+
+#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+pub struct Block {
+    pub text: String,
+    pub marks: Vec<Mark>,
+}
+
+#[derive(Debug, Clone, GraphQLInputObject)]
+pub struct NewStackItem {
+    pub title: String,
+    pub blocks: Vec<Block>
+}
 
 #[derive(Clone)]
 pub struct Context {

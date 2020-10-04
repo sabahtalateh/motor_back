@@ -116,7 +116,7 @@ impl AuthServiceIf for AuthService {
 
     async fn find_user_by_access(&self, access: &str) -> Option<User> {
         let token = self.tokens_repo.find_by_access(access).await?;
-        self.users_repo.find(token.user_id).await
+        self.users_repo.find(&token.user_id).await
     }
 
     async fn validate_access(&self, access: &str, now: DateTime<Utc>) -> AppResult<User> {

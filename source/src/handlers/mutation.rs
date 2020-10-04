@@ -1,12 +1,13 @@
 use crate::config::ConfigIf;
-use crate::handlers::Context;
-use crate::repos::stack::StackItem;
+use crate::errors::AppError;
+use crate::handlers::{Context, NewStackItem};
 use crate::repos::tokens::TokenPair;
 use crate::services::auth::AuthServiceIf;
 use crate::services::stack::StackServiceIf;
 use crate::utils::{AppResult, OkOrUnauthorized};
 use chrono::Utc;
 use shaku::HasComponent;
+use crate::repos::stack::StackItem;
 
 pub struct Mutation {}
 
@@ -34,13 +35,15 @@ impl Mutation {
         auth.refresh_token(&refresh, Utc::now()).await
     }
 
-    pub async fn stack(access: String, short: String, ctx: &Context) -> AppResult<StackItem> {
+    pub async fn my_stack_add(
+        access: String,
+        stack_item: NewStackItem,
+        ctx: &Context,
+    ) -> AppResult<StackItem> {
         let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();
-        let user = auth
-            .find_user_by_access(&access)
-            .await
-            .ok_or_unauthorized()?;
+        let user = auth.validate_access(&access, Utc::now()).await?;
+
         let stack_service: &dyn StackServiceIf = ctx.ctr.resolve_ref();
-        Ok(stack_service.stack(user, short).await)
+        Ok(stack_service.add_to_my_stack(user, stack_item).await)
     }
 }

@@ -1,8 +1,10 @@
 use crate::errors::AppError;
 use bson::Document;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 use slog::Logger;
-
+use crate::repos::Id;
+use bson::oid::ObjectId;
 
 pub type AppResult<T> = Result<T, AppError>;
 
@@ -69,7 +71,6 @@ impl<T, E> IntoAppErr<T> for Result<T, E> {
     }
 }
 
-
 ///
 /// Если пользователь не найден
 /// Обычно в контроллере первой строчкой
@@ -84,5 +85,25 @@ impl<T> OkOrUnauthorized<T> for Option<T> {
             Some(v) => Ok(v),
             None => Err(AppError::unauthorized()),
         }
+    }
+}
+
+///
+/// Для переделывания массива каких то штук
+///  в массив документов.
+/// Штуки должны быть сериализуемые
+///
+pub trait ToDocsVec<T> {
+    fn to_documents_vec(&self) -> Vec<Document>;
+}
+
+impl<T> ToDocsVec<T> for Vec<T>
+where
+    T: Serialize,
+{
+    fn to_documents_vec(&self) -> Vec<Document> {
+        self.iter()
+            .map(|x| bson::to_bson(x).unwrap().as_document().unwrap().clone())
+            .collect()
     }
 }

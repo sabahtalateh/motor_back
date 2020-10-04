@@ -1,21 +1,24 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::Id;
-use crate::utils::{LogErrWith, OkOrMongoRecordId, IntoAppErr, deserialize_bson};
+use crate::repos::{find_one_by_id, insert_one_into, link_external_ids, Id};
+use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId};
+
 use async_trait::async_trait;
-use bson::{Document};
+use bson::oid::ObjectId;
+use bson::Document;
+use juniper::futures::StreamExt;
 use juniper::GraphQLObject;
 use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
-use bson::oid::ObjectId;
-use juniper::futures::StreamExt;
 
 #[async_trait]
 pub trait StackRepoIf: Interface {
-    async fn insert(&self, stack_item: NewStackItem) -> StackItem;
+    async fn insert(&self, stack_item: &NewStackItem) -> StackItem;
+    async fn link_blocks(&self, stack_item: &StackItem, block_ids: &Vec<Id>) -> StackItem;
+    async fn link_marks(&self, stack_item: &StackItem, mark_ids: &Vec<Id>) -> StackItem;
     async fn find_by_user_id(&self, user_id: Id) -> Vec<StackItem>;
 }
 
@@ -30,47 +33,72 @@ pub struct StackRepo {
     app_logger: Arc<dyn AppLoggerIf>,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct NewStackItem {
-    pub short: String,
     pub user_id: Id,
+    pub title: String,
+    pub block_ids: Vec<Id>,
+    pub mark_ids: Vec<Id>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct NewBlock {
+    pub text: String,
+    pub marks: Vec<NewMark>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct NewMark {
+    pub from: i32,
+    pub to: i32,
 }
 
 #[derive(Deserialize, Debug, GraphQLObject)]
 pub struct StackItem {
     #[serde(rename = "_id")]
     pub id: Id,
-    pub short: String,
+    pub title: String,
+    pub block_ids: Vec<Id>,
+    pub mark_ids: Vec<Id>,
 }
 
 #[async_trait]
 impl StackRepoIf for StackRepo {
-    async fn insert(&self, stack_item: NewStackItem) -> StackItem {
-        let doc: Document = bson::to_bson(&stack_item)
-            .unwrap()
-            .as_document()
-            .unwrap()
-            .clone();
-
-        let id = self
-            .db
-            .get()
-            .collection("stack")
-            .insert_one(doc, None)
+    async fn insert(&self, stack_item: &NewStackItem) -> StackItem {
+        let id = insert_one_into(&self.db.get(), "stack", &stack_item, self.logger()).await;
+        find_one_by_id(&self.db.get(), "stack", &id, self.logger())
             .await
-            .map(|ok| ok.inserted_id)
-            .log_err_with(self.logger())
             .unwrap()
-            .as_object_id()
-            .ok_or_mongo_record_id()
-            .log_err_with(self.logger())
-            .unwrap()
-            .clone();
+    }
 
-        StackItem {
-            id: id.into(),
-            short: stack_item.short,
-        }
+    async fn link_blocks(&self, stack_item: &StackItem, block_ids: &Vec<Id>) -> StackItem {
+        link_external_ids(
+            &self.db.get(),
+            "stack",
+            &stack_item.id,
+            "block_ids",
+            block_ids,
+        )
+        .await;
+
+        find_one_by_id(&self.db.get(), "stack", &stack_item.id, self.logger())
+            .await
+            .unwrap()
+    }
+
+    async fn link_marks(&self, stack_item: &StackItem, mark_ids: &Vec<Id>) -> StackItem {
+        link_external_ids(
+            &self.db.get(),
+            "stack",
+            &stack_item.id,
+            "mark_ids",
+            mark_ids,
+        )
+        .await;
+
+        find_one_by_id(&self.db.get(), "stack", &stack_item.id, self.logger())
+            .await
+            .unwrap()
     }
 
     async fn find_by_user_id(&self, user_id: Id) -> Vec<StackItem> {
@@ -87,6 +115,5 @@ impl StackRepoIf for StackRepo {
             .map(|x| deserialize_bson(&x.unwrap()))
             .collect()
             .await
-            // .unwrap()
     }
 }

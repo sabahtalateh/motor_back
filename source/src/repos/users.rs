@@ -1,6 +1,6 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::Id;
+use crate::repos::{find_one_by_id, Id};
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
 use async_trait::async_trait;
 use bson::oid::ObjectId;
@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 #[async_trait]
 pub trait UsersRepoIf: Interface {
-    async fn find(&self, id: Id) -> Option<User>;
+    async fn find(&self, id: &Id) -> Option<User>;
     async fn insert(&self, new_user: &NewUser);
     async fn find_by_username(&self, username: &str) -> Option<User>;
 }
@@ -45,18 +45,8 @@ pub struct User {
 
 #[async_trait]
 impl UsersRepoIf for UsersRepo {
-    async fn find(&self, id: Id) -> Option<User> {
-        let id: ObjectId = id.into();
-
-        self.db
-            .get()
-            .collection("users")
-            .find_one(Some(doc! {"_id": id}), None)
-            .await
-            .log_err_with(self.logger())
-            .into_app_err()
-            .unwrap()
-            .map(|u| deserialize_bson(&u))
+    async fn find(&self, id: &Id) -> Option<User> {
+        find_one_by_id(&self.db.get(), "users", id, self.logger()).await
     }
 
     async fn insert(&self, new_user: &NewUser) {
