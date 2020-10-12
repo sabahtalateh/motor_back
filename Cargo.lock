@@ -1344,8 +1344,9 @@ dependencies = [
 [[package]]
 name = "juniper"
 version = "0.14.2"
-source = "git+https://github.com/graphql-rust/juniper#8b79f5b1f1e7969f92467db62a9d128fec58b1f2"
+source = "git+https://github.com/graphql-rust/juniper#f914322ef44eab706fb3d5d4a4b3e7022f47ab86"
 dependencies = [
+ "async-trait",
  "bson",
  "chrono",
  "fnv",
@@ -1363,7 +1364,7 @@ dependencies = [
 [[package]]
 name = "juniper_codegen"
 version = "0.14.2"
-source = "git+https://github.com/graphql-rust/juniper#8b79f5b1f1e7969f92467db62a9d128fec58b1f2"
+source = "git+https://github.com/graphql-rust/juniper#f914322ef44eab706fb3d5d4a4b3e7022f47ab86"
 dependencies = [
  "proc-macro-error",
  "proc-macro2 1.0.21",
@@ -1626,6 +1627,7 @@ dependencies = [
  "chrono",
  "config",
  "dotenv",
+ "futures",
  "juniper",
  "lazy_static",
  "log",

@@ -57,3 +57,5 @@ lazy_static = "1.4.0"
 
 # уникальный айди, почти такой же уникальный как ты
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
+
+futures = "0.3"

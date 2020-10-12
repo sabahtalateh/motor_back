@@ -1,8 +1,7 @@
 use crate::config::ConfigIf;
 use crate::handlers::Context;
-use crate::repos::stack::StackItem;
 use crate::services::auth::AuthServiceIf;
-use crate::services::stack::StackServiceIf;
+use crate::services::stack::{StackServiceIf, StackItem};
 use crate::utils::AppResult;
 use chrono::Utc;
 use shaku::HasComponent;

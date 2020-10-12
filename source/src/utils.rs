@@ -1,10 +1,10 @@
 use crate::errors::AppError;
+use crate::repos::Id;
+use bson::oid::ObjectId;
 use bson::Document;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use slog::Logger;
-use crate::repos::Id;
-use bson::oid::ObjectId;
 
 pub type AppResult<T> = Result<T, AppError>;
 
@@ -84,6 +84,23 @@ impl<T> OkOrUnauthorized<T> for Option<T> {
         match self {
             Some(v) => Ok(v),
             None => Err(AppError::unauthorized()),
+        }
+    }
+}
+
+///
+/// Если пользователь не найден
+/// Обычно в контроллере первой строчкой
+///
+pub trait OkOrNotFound<T> {
+    fn ok_or_not_found(self) -> AppResult<T>;
+}
+
+impl<T> OkOrNotFound<T> for Option<T> {
+    fn ok_or_not_found(self) -> AppResult<T> {
+        match self {
+            Some(v) => Ok(v),
+            None => Err(AppError::not_found("Not Found")),
         }
     }
 }

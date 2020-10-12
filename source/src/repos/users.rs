@@ -1,6 +1,6 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::{find_one_by_id, Id};
+use crate::repos::db::find_one_by_id;
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
 use async_trait::async_trait;
 use bson::oid::ObjectId;
@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
+use crate::repos::Id;
 
 #[async_trait]
 pub trait UsersRepoIf: Interface {
