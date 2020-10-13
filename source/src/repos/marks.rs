@@ -3,7 +3,7 @@ use crate::logger::AppLoggerIf;
 use crate::repos::Id;
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId};
 
-use crate::repos::db::find_many_by_ids;
+use crate::repos::db::{find_many_by_ids, find_many_by};
 use async_trait::async_trait;
 use bson::oid::ObjectId;
 use bson::{Bson, Document};
@@ -15,7 +15,7 @@ use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct Mark {
     #[serde(rename = "_id")]
     pub id: Id,
@@ -24,16 +24,7 @@ pub struct Mark {
     pub to: i32,
     pub moment: bool,
     pub version: i32,
-}
-
-#[derive(Serialize)]
-pub struct InsertMark {
-    pub block_id: Id,
-    pub from: i32,
-    pub to: i32,
-    pub moment: bool,
-    pub removed: bool,
-    pub version: i32,
+    pub version_id: Id,
 }
 
 #[derive(Serialize)]
@@ -43,11 +34,22 @@ pub struct NewMark {
     pub to: i32,
 }
 
+#[derive(Serialize)]
+pub struct InsertMark {
+    block_id: Id,
+    from: i32,
+    to: i32,
+    moment: bool,
+    removed: bool,
+    version: i32,
+    version_id: Id,
+}
+
 #[async_trait]
 pub trait MarksRepoIf: Interface {
     async fn insert_many(&self, new_marks: &Vec<NewMark>) -> Vec<Mark>;
-    // async fn delete_by_b
     async fn find_by_ids(&self, ids: &Vec<Id>) -> Vec<Mark>;
+    async fn find_by_block_id(&self, block_id: &Id) -> Vec<Mark>;
 }
 
 #[shaku(interface = MarksRepoIf)]
@@ -77,6 +79,7 @@ impl MarksRepoIf for MarksRepo {
                 moment: true,
                 removed: false,
                 version: 0,
+                version_id: ObjectId::new().into(),
             })
             .collect();
 
@@ -109,6 +112,7 @@ impl MarksRepoIf for MarksRepo {
                 to: mark.to,
                 moment: mark.moment,
                 version: mark.version,
+                version_id: mark.version_id.clone(),
             })
         }
 
@@ -117,5 +121,10 @@ impl MarksRepoIf for MarksRepo {
 
     async fn find_by_ids(&self, ids: &Vec<Id>) -> Vec<Mark> {
         find_many_by_ids(&self.db.get(), "marks", ids, self.logger()).await
+    }
+
+    async fn find_by_block_id(&self, block_id: &Id) -> Vec<Mark> {
+        let block_id: ObjectId = block_id.clone().into();
+        find_many_by(&self.db.get(), "marks", doc!{ "block_id": block_id }, self.logger()).await
     }
 }

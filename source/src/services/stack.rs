@@ -2,7 +2,7 @@ use crate::handlers::stack::{NewStackItem, UpdateBlock, UpdateMark, UpdateStackI
 use crate::logger::AppLoggerIf;
 use crate::repos::blocks::Block as BlockEntity;
 use crate::repos::blocks::BlocksRepoIf;
-use crate::repos::marks::{MarksRepoIf, NewMark};
+use crate::repos::marks::{Mark as MarkEntity, MarksRepoIf, NewMark};
 use crate::repos::stack::{NewStackItem as NewStackItemEntity, StackRepoIf};
 use crate::repos::users::User;
 use crate::repos::Id;
@@ -215,14 +215,63 @@ impl StackServiceIf for StackService {
         println!("KK");
         println!("{:?}", updated_blocks);
 
+        let mut old_marks_removed_from_updated_blocks = HashMap::new();
+        let mut marks_modified_in_updated_blocks = HashMap::new();
+        let mut new_marks_added_into_updated_blocks = HashMap::new();
+
         for old in updated_old_blocks {
             if let Some(new) = updated_blocks.iter().find(|u| match &u.id {
                 None => false,
                 Some(id) => id == &old.id,
             }) {
-                self.blocks_repo.update(old, &new.text).await;
+                let old_block_marks = self.marks_repo.find_by_block_id(&old.id).await;
+                let old_marks_removed_from_updated_block: Vec<Id> = old_block_marks
+                    .clone()
+                    .into_iter()
+                    .filter(|m| {
+                        !new.marks.iter().any(|new_m| match &new_m.id {
+                            None => false,
+                            Some(id) => id == &m.id,
+                        })
+                    })
+                    .map(|m| m.id.clone())
+                    .collect();
+                old_marks_removed_from_updated_blocks
+                    .insert(&old.id, old_marks_removed_from_updated_block);
+
+                let old_marks_modified_in_updated_block: Vec<(MarkEntity, &UpdateMark)> = old_block_marks
+                    .clone()
+                    .into_iter()
+                    .filter(|m| {
+                        new.marks.iter().any(|new_m| match &new_m.id {
+                            None => false,
+                            Some(id) => id == &m.id && (m.from != new_m.from || m.to != new_m.to),
+                        })
+                    })
+                    .map(|old_mark| {
+                        let new_mark = new.marks.iter().find(|new_m| match &new_m.id {
+                            None => false,
+                            Some(new_m_id) => new_m_id == &old_mark.id,
+                        }).unwrap();
+                        (old_mark, new_mark)
+                    })
+                    .collect();
+                marks_modified_in_updated_blocks
+                    .insert(&old.id, old_marks_modified_in_updated_block);
+
+                let new_marks_added_into_updated_block: Vec<&UpdateMark> =
+                    new.marks.iter().filter(|m| m.id.is_none()).collect();
+                new_marks_added_into_updated_blocks
+                    .insert(&old.id, new_marks_added_into_updated_block);
             };
         }
+
+        println!("OMREM");
+        println!("{:#?}", old_marks_removed_from_updated_blocks);
+        println!("MUPD");
+        println!("{:#?}", marks_modified_in_updated_blocks);
+        println!("NM");
+        println!("{:#?}", new_marks_added_into_updated_blocks);
 
         // let mut updated_blocks_and_marks: Vec<(&BlockEntity, &Vec<UpdateMark>)> = vec![];
         // for updated in updated_blocks {

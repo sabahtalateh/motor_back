@@ -5,7 +5,6 @@ use crate::utils::OkOrMongoRecordId;
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
 use bson::oid::ObjectId;
 use bson::Document;
-use juniper::futures::{FutureExt, StreamExt};
 use juniper::sa::_core::fmt::Debug;
 use juniper::GraphQLScalarValue;
 use mongodb::Database;
@@ -14,6 +13,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use slog::Logger;
 use std::fs::read_to_string;
 use std::pin::Pin;
+use futures::{FutureExt, StreamExt};
 
 pub(crate) async fn find_one_by_id<T>(
     db: &Database,
@@ -48,6 +48,26 @@ where
 
     db.collection(collection)
         .find(Some(doc! {"_id": {"$in": ids}}), None)
+        .await
+        .log_err_with(logger)
+        .into_app_err()
+        .unwrap()
+        .map(|x| deserialize_bson(&x.unwrap()))
+        .collect()
+        .await
+}
+
+pub(crate) async fn find_many_by<T>(
+    db: &Database,
+    collection: &str,
+    criteria: Document,
+    logger: &Logger,
+) -> Vec<T>
+    where
+        T: DeserializeOwned,
+{
+    db.collection(collection)
+        .find(Some(criteria), None)
         .await
         .log_err_with(logger)
         .into_app_err()
@@ -98,6 +118,7 @@ pub(crate) async fn set_by_id(db: &Database, collection: &str, id: &Id, set: Doc
     update_result.modified_count > 0
 }
 
+// To try futures::join
 pub(crate) async fn set_by_id_pin(db: Pin<&Database>, collection: &str, id: &Id, set: Document) -> bool {
     let id: ObjectId = id.clone().into();
 
@@ -134,7 +155,7 @@ pub(crate) async fn delete_by_id(db: &Database, collection: &str, id: &Id) -> bo
     delete_result.deleted_count > 0
 }
 
-async fn delete_by(db: &Database, collection: &str, criteria: Document) -> bool {
+pub (crate) async fn delete_by(db: &Database, collection: &str, criteria: Document) -> bool {
     let delete_result = db
         .collection(collection)
         .delete_many(criteria, None)
