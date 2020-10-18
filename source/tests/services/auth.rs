@@ -95,3 +95,7 @@ async fn test_login_with_ok_creds() -> () {
     let login_result = auth.login("User3".to_string(), "123".to_string(), Utc::now()).await;
     assert_eq!(login_result.is_ok(), true);
 }
+
+/// TODO тесты на рефрешь токена (подкрутить конфиг для этого)
+///      тест на то что пользователь по токены находится
+///      тест на то что токен валидный/невалидный
