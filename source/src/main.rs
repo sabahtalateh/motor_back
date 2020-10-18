@@ -1,39 +1,11 @@
-mod config;
-mod container;
-mod db;
-mod errors;
-mod handlers;
-mod init;
-mod logger;
-mod mongo;
-mod repos;
-mod services;
-mod utils;
-
-#[macro_use]
-extern crate proc_macro_derive;
-
-#[macro_use]
-extern crate lazy_static;
-
-#[macro_use]
-extern crate bson;
-
-#[macro_use]
-extern crate slog;
-extern crate slog_async;
-extern crate slog_atomic;
-extern crate slog_json;
-extern crate slog_term;
-
-use crate::config::Config;
-use crate::container::Container;
-use crate::handlers::app_config;
-use crate::init::init_app;
 use actix_cors::Cors;
 use actix_web::{http::header, http::Method, middleware, App, HttpServer};
 use std::io;
 use std::sync::Arc;
+use motor_back::config::Config;
+use motor_back::init::init_app;
+use motor_back::handlers::app_config;
+use motor_back::container::Container;
 
 #[actix_rt::main]
 async fn main() -> Result<(), io::Error> {

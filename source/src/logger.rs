@@ -1,8 +1,8 @@
-use crate::config::{Config};
+use crate::config::Config;
 use shaku::{Component, Interface};
 use slog::{Drain, Logger, PushFnValue};
 use std::fs::OpenOptions;
-use std::sync::{Mutex};
+use std::sync::Mutex;
 
 pub trait AppLoggerIf: Interface {
     fn logger(&self) -> &Logger;
