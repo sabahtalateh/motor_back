@@ -2,7 +2,7 @@ use crate::handlers::stack::{NewStackItem, UpdateBlock, UpdateMark, UpdateStackI
 use crate::logger::AppLoggerIf;
 use crate::repos::blocks::Block as BlockEntity;
 use crate::repos::blocks::BlocksRepoIf;
-use crate::repos::marks::{Mark as MarkEntity, MarksRepoIf, NewMark};
+use crate::repos::marks::{Mark as MarkEntity, MarksRepoIf, InsertMark};
 use crate::repos::stack::{NewStackItem as NewStackItemEntity, StackRepoIf};
 use crate::repos::users::User;
 use crate::repos::Id;
@@ -109,7 +109,7 @@ impl StackServiceIf for StackService {
             let new_marks = b
                 .marks
                 .iter()
-                .map(|x| NewMark {
+                .map(|x| InsertMark {
                     block_id: inserted_block.id.clone(),
                     from: x.from,
                     to: x.to,

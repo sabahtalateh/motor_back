@@ -22,32 +22,18 @@ pub struct Mark {
     pub block_id: Id,
     pub from: i32,
     pub to: i32,
-    pub moment: bool,
-    pub version: i32,
-    pub version_id: Id,
 }
 
 #[derive(Serialize)]
-pub struct NewMark {
+pub struct InsertMark {
     pub block_id: Id,
     pub from: i32,
     pub to: i32,
 }
 
-#[derive(Serialize)]
-pub struct InsertMark {
-    block_id: Id,
-    from: i32,
-    to: i32,
-    moment: bool,
-    removed: bool,
-    version: i32,
-    version_id: Id,
-}
-
 #[async_trait]
 pub trait MarksRepoIf: Interface {
-    async fn insert_many(&self, new_marks: &Vec<NewMark>) -> Vec<Mark>;
+    async fn insert_many(&self, new_marks: &Vec<InsertMark>) -> Vec<Mark>;
     async fn find_by_ids(&self, ids: &Vec<Id>) -> Vec<Mark>;
     async fn find_by_block_id(&self, block_id: &Id) -> Vec<Mark>;
 }
@@ -65,7 +51,7 @@ pub struct MarksRepo {
 
 #[async_trait]
 impl MarksRepoIf for MarksRepo {
-    async fn insert_many(&self, new_marks: &Vec<NewMark>) -> Vec<Mark> {
+    async fn insert_many(&self, new_marks: &Vec<InsertMark>) -> Vec<Mark> {
         if new_marks.len() == 0 {
             return vec![];
         }
@@ -76,10 +62,6 @@ impl MarksRepoIf for MarksRepo {
                 block_id: m.block_id.clone(),
                 from: m.from,
                 to: m.to,
-                moment: true,
-                removed: false,
-                version: 0,
-                version_id: ObjectId::new().into(),
             })
             .collect();
 
@@ -110,9 +92,6 @@ impl MarksRepoIf for MarksRepo {
                 block_id: mark.block_id.clone(),
                 from: mark.from,
                 to: mark.to,
-                moment: mark.moment,
-                version: mark.version,
-                version_id: mark.version_id.clone(),
             })
         }
 

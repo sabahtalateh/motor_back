@@ -2,7 +2,7 @@ use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::repos::db::{
     delete_by_id, find_many_by_ids, find_one_by_id, inc_version, insert_one_into,
-    link_external_ids, set_by_id, set_by_id_pin,
+    link_external_ids, set_by_id,
 };
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId, ToDocsVec};
 
@@ -26,28 +26,13 @@ pub struct Block {
     pub stack_id: Id,
     pub text: String,
     pub mark_ids: Vec<Id>,
-    pub moment: bool,
-    pub version: i32,
-    pub version_id: Id,
 }
-
-// impl PartialEq for Block {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.id == other.id
-//     }
-// }
-//
-// impl Eq for Block {}
 
 #[derive(Serialize, Debug)]
 struct InsertBlock {
     stack_id: Id,
     text: String,
     mark_ids: Vec<Id>,
-    moment: bool,
-    removed: bool,
-    version: i32,
-    version_id: Id,
 }
 
 #[async_trait]
@@ -87,10 +72,6 @@ impl BlocksRepoIf for BlocksRepo {
                 stack_id: stack_id.clone(),
                 text: text.to_owned(),
                 mark_ids: vec![],
-                moment: true,
-                removed: false,
-                version: 0,
-                version_id: version_id.clone(),
             },
             self.logger(),
         )
@@ -101,9 +82,6 @@ impl BlocksRepoIf for BlocksRepo {
             stack_id: stack_id.clone(),
             text: text.to_owned(),
             mark_ids: vec![],
-            moment: true,
-            version: 0,
-            version_id,
         }
     }
 
@@ -121,10 +99,6 @@ impl BlocksRepoIf for BlocksRepo {
                 stack_id: old.stack_id,
                 text: old.text,
                 mark_ids: old.mark_ids,
-                moment: false,
-                removed: false,
-                version: old.version,
-                version_id: old.version_id,
             },
             self.logger(),
         )

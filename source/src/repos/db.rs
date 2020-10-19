@@ -118,19 +118,6 @@ pub(crate) async fn set_by_id(db: &Database, collection: &str, id: &Id, set: Doc
     update_result.modified_count > 0
 }
 
-// To try futures::join
-pub(crate) async fn set_by_id_pin(db: Pin<&Database>, collection: &str, id: &Id, set: Document) -> bool {
-    let id: ObjectId = id.clone().into();
-
-    let update_result = db
-        .collection(collection)
-        .update_one(doc! {"_id": id}, doc! { "$set": set }, None)
-        .await
-        .unwrap();
-
-    update_result.modified_count > 0
-}
-
 pub(crate) async fn inc_version(db: &Database, collection: &str, id: &Id) -> bool {
     let id: ObjectId = id.clone().into();
 
