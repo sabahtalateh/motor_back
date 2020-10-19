@@ -5,16 +5,17 @@ use motor_back::errors::AppError;
 use motor_back::init::init_app;
 use motor_back::services::auth::AuthServiceIf;
 use shaku::HasComponent;
-use chrono::Utc;
+use chrono::{Utc, Duration};
 
 #[actix_rt::test]
-async fn test_registration_failed_if_password_weak() -> () {
+async fn registration_failed_if_password_weak() -> () {
     let mut config = (&*DEFAULT_CONFIG).clone();
     config.pwd_min_len = 2;
     let ctr: Container = init_app(&config).await;
 
     let db: &dyn DBIf = ctr.resolve_ref();
     trunc_collection(&db.get(), "users").await;
+    trunc_collection(&db.get(), "tokens").await;
 
     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
     let reg_result = auth.register("U".to_string(), "1".to_string()).await;
@@ -28,7 +29,7 @@ async fn test_registration_failed_if_password_weak() -> () {
 }
 
 #[actix_rt::test]
-async fn test_registration_success_if_password_strong() -> () {
+async fn registration_success_if_password_strong() -> () {
     let mut config = (&*DEFAULT_CONFIG).clone();
     config.pwd_min_len = 2;
     let ctr: Container = init_app(&config).await;
@@ -36,6 +37,7 @@ async fn test_registration_success_if_password_strong() -> () {
 
     let db: &dyn DBIf = ctr.resolve_ref();
     trunc_collection(&db.get(), "users").await;
+    trunc_collection(&db.get(), "tokens").await;
 
     let reg_result = auth.register("U".to_string(), "12".to_string()).await;
 
@@ -43,7 +45,7 @@ async fn test_registration_success_if_password_strong() -> () {
 }
 
 #[actix_rt::test]
-async fn test_registration_failed_if_username_exists() -> () {
+async fn registration_failed_if_username_exists() -> () {
     let mut config = (&*DEFAULT_CONFIG).clone();
     config.pwd_min_len = 2;
     let ctr: Container = init_app(&config).await;
@@ -51,6 +53,7 @@ async fn test_registration_failed_if_username_exists() -> () {
 
     let db: &dyn DBIf = ctr.resolve_ref();
     trunc_collection(&db.get(), "users").await;
+    trunc_collection(&db.get(), "tokens").await;
 
     let reg_result = auth.register("User".to_string(), "12".to_string()).await;
     assert_eq!(reg_result, Ok(()));
@@ -63,7 +66,7 @@ async fn test_registration_failed_if_username_exists() -> () {
 }
 
 #[actix_rt::test]
-async fn test_can_not_login_with_wrong_creds() -> () {
+async fn can_not_login_with_incorrect_creds() -> () {
     let mut config = (&*DEFAULT_CONFIG).clone();
     config.pwd_min_len = 2;
     let ctr: Container = init_app(&config).await;
@@ -80,7 +83,7 @@ async fn test_can_not_login_with_wrong_creds() -> () {
 }
 
 #[actix_rt::test]
-async fn test_login_with_ok_creds() -> () {
+async fn can_login_with_ok_creds() -> () {
     let mut config = (&*DEFAULT_CONFIG).clone();
     config.pwd_min_len = 2;
     let ctr: Container = init_app(&config).await;
@@ -88,14 +91,113 @@ async fn test_login_with_ok_creds() -> () {
 
     let db: &dyn DBIf = ctr.resolve_ref();
     trunc_collection(&db.get(), "users").await;
+    trunc_collection(&db.get(), "tokens").await;
 
     let reg_result = auth.register("User3".to_string(), "123".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
     let login_result = auth.login("User3".to_string(), "123".to_string(), Utc::now()).await;
-    assert_eq!(login_result.is_ok(), true);
+    assert!(login_result.is_ok());
 }
 
-/// TODO тесты на рефрешь токена (подкрутить конфиг для этого)
-///      тест на то что пользователь по токены находится
-///      тест на то что токен валидный/невалидный
+#[actix_rt::test]
+async fn refresh_fails_with_incorrect_token() -> () {
+    let mut config = (&*DEFAULT_CONFIG).clone();
+    let ctr: Container = init_app(&config).await;
+    let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+
+    let db: &dyn DBIf = ctr.resolve_ref();
+    trunc_collection(&db.get(), "users").await;
+    trunc_collection(&db.get(), "tokens").await;
+
+    let reg_result = auth.register("User8".to_string(), "321123".to_string()).await;
+    assert_eq!(reg_result, Ok(()));
+
+    let refresh_result = auth.refresh_token("incorrect_token", Utc::now()).await;
+    assert_eq!(refresh_result.map(|_| ()), Err(AppError::unauthorized()));
+}
+
+
+#[actix_rt::test]
+async fn refresh_success_with_correct_token() -> () {
+    let mut config = (&*DEFAULT_CONFIG).clone();
+    let ctr: Container = init_app(&config).await;
+    let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+
+    let db: &dyn DBIf = ctr.resolve_ref();
+    trunc_collection(&db.get(), "users").await;
+    trunc_collection(&db.get(), "tokens").await;
+
+    let reg_result = auth.register("User101".to_string(), "321000".to_string()).await;
+    assert_eq!(reg_result, Ok(()));
+
+    let tokens = auth.login("User101".to_string(), "321000".to_string(), Utc::now()).await.unwrap();
+
+    let refresh_result = auth.refresh_token(&tokens.refresh, Utc::now()).await;
+    assert!(refresh_result.is_ok());
+}
+
+#[actix_rt::test]
+async fn refresh_failed_with_expired_token() -> () {
+    let mut config = (&*DEFAULT_CONFIG).clone();
+    // refresh and access token expires just as created
+    config.access_token_lifetime = Duration::seconds(0);
+    config.refresh_token_lifetime = Duration::seconds(0);
+    let ctr: Container = init_app(&config).await;
+
+    let db: &dyn DBIf = ctr.resolve_ref();
+    trunc_collection(&db.get(), "users").await;
+    trunc_collection(&db.get(), "tokens").await;
+
+    let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+
+    let reg_result = auth.register("User1011".to_string(), "321000".to_string()).await;
+    assert_eq!(reg_result, Ok(()));
+
+    let tokens = auth.login("User1011".to_string(), "321000".to_string(), Utc::now()).await.unwrap();
+
+    let refresh_result = auth.refresh_token(&tokens.refresh, Utc::now()).await;
+    assert_eq!(refresh_result.map(|_|()), Err(AppError::unauthorized()));
+}
+
+#[actix_rt::test]
+async fn validation_failed_for_incorrect_access() -> () {
+    let mut config = (&*DEFAULT_CONFIG).clone();
+    // refresh and access token expires just as created
+    config.access_token_lifetime = Duration::seconds(0);
+    config.refresh_token_lifetime = Duration::seconds(0);
+    let ctr: Container = init_app(&config).await;
+
+    let db: &dyn DBIf = ctr.resolve_ref();
+    trunc_collection(&db.get(), "users").await;
+    trunc_collection(&db.get(), "tokens").await;
+
+    let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+
+    let reg_result = auth.register("User10115".to_string(), "321000".to_string()).await;
+    assert_eq!(reg_result, Ok(()));
+
+    let result = auth.validate_access("incorrect_access", Utc::now()).await;
+    assert_eq!(result.map(|_|()), Err(AppError::unauthorized()));
+}
+
+#[actix_rt::test]
+async fn validation_passed_for_correct_access() -> () {
+    let mut config = (&*DEFAULT_CONFIG).clone();
+    let ctr: Container = init_app(&config).await;
+
+    let db: &dyn DBIf = ctr.resolve_ref();
+    trunc_collection(&db.get(), "users").await;
+    trunc_collection(&db.get(), "tokens").await;
+
+    let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+
+    let reg_result = auth.register("User10112".to_string(), "321000".to_string()).await;
+    assert_eq!(reg_result, Ok(()));
+
+    let tokens = auth.login("User10112".to_string(), "321000".to_string(), Utc::now()).await.unwrap();
+
+    let result = auth.validate_access(&tokens.access, Utc::now()).await;
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().username, "User10112");
+}

@@ -24,7 +24,6 @@ pub trait AuthServiceIf: Interface {
     ) -> AppResult<TokenPair>;
     async fn register(&self, login: String, password: String) -> AppResult<()>;
     async fn refresh_token(&self, refresh: &str, now: DateTime<Utc>) -> AppResult<TokenPair>;
-    async fn find_user_by_access(&self, access: &str) -> Option<User>;
     async fn validate_access(&self, access: &str, now: DateTime<Utc>) -> AppResult<User>;
 }
 
@@ -49,6 +48,13 @@ pub struct AuthService {
 
     #[shaku(no_default)]
     refresh_token_lifetime: Duration,
+}
+
+impl AuthService {
+    async fn find_user_by_access(&self, access: &str) -> Option<User> {
+        let token = self.tokens_repo.find_by_access(access).await?;
+        self.users_repo.find(&token.user_id).await
+    }
 }
 
 #[async_trait]
@@ -112,11 +118,6 @@ impl AuthServiceIf for AuthService {
         self.tokens_repo.insert(&token).await;
 
         Ok(token)
-    }
-
-    async fn find_user_by_access(&self, access: &str) -> Option<User> {
-        let token = self.tokens_repo.find_by_access(access).await?;
-        self.users_repo.find(&token.user_id).await
     }
 
     async fn validate_access(&self, access: &str, now: DateTime<Utc>) -> AppResult<User> {
