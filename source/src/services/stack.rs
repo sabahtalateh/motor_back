@@ -15,6 +15,7 @@ use slog::Logger;
 use std::collections::HashMap;
 use std::iter::Map;
 use std::sync::Arc;
+use crate::errors::AppError;
 
 #[derive(GraphQLObject)]
 pub struct StackItem {
@@ -39,7 +40,7 @@ pub struct Mark {
 
 #[async_trait]
 pub trait StackServiceIf: Interface {
-    async fn add_to_my_stack(&self, user: User, stack_item: NewStackItem) -> StackItem;
+    async fn add_to_my_stack(&self, user: User, stack_item: NewStackItem) -> AppResult<StackItem>;
     async fn update_stack_item(
         &self,
         user: User,
@@ -67,7 +68,11 @@ pub struct StackService {
 
 #[async_trait]
 impl StackServiceIf for StackService {
-    async fn add_to_my_stack(&self, user: User, new_stack_item: NewStackItem) -> StackItem {
+    async fn add_to_my_stack(&self, user: User, new_stack_item: NewStackItem) -> AppResult<StackItem> {
+        if new_stack_item.title.is_none() && new_stack_item.blocks.len() == 0 {
+            return Err(AppError::validation("Can not add empty stack item"));
+        }
+
         // TODO это убарть
         // let ids = vec![Id("123".to_string())];
         // let ids2 = vec![Id("456".to_string())];
@@ -147,11 +152,11 @@ impl StackServiceIf for StackService {
             .link_marks(&stack_item_entity, &marks_ids)
             .await;
 
-        StackItem {
+        Ok(StackItem {
             id: stack_item_entity.id,
             title: stack_item_entity.title,
             blocks,
-        }
+        })
     }
 
     async fn update_stack_item(

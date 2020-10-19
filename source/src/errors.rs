@@ -1,8 +1,8 @@
 use juniper::{graphql_value, FieldError, IntoFieldError};
 
-use juniper::sa::_core::fmt::Formatter;
 use std::fmt;
 use AppErrorType::*;
+use std::fmt::Formatter;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AppErrorType {
@@ -10,7 +10,7 @@ pub enum AppErrorType {
     Unauthorized,
     AccessExpired,
     InternalServerError,
-    CheckError,
+    ValidationError,
     OtherError,
 }
 
@@ -21,7 +21,7 @@ impl ToString for AppErrorType {
             Unauthorized => "unauthorized",
             AccessExpired => "access_expired",
             InternalServerError => "internal_server_error",
-            CheckError => "check_error",
+            ValidationError => "validation_error",
             OtherError => "other_error",
         }
         .to_string()
@@ -66,11 +66,11 @@ impl AppError {
         AppError::new(message, AppErrorType::NotFound)
     }
 
-    pub fn check(message: &str) -> AppError {
-        AppError::new(message, AppErrorType::CheckError)
+    pub fn validation(message: &str) -> AppError {
+        AppError::new(message, AppErrorType::ValidationError)
     }
 
-    pub fn internal_server_error() -> AppError {
+    pub fn internal() -> AppError {
         AppError::new("internal server error", AppErrorType::InternalServerError)
     }
 

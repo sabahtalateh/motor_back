@@ -22,7 +22,7 @@ async fn registration_failed_if_password_weak() -> () {
 
     assert_eq!(
         reg_result,
-        Err(AppError::check(
+        Err(AppError::validation(
             "password length should be at least `2` characters"
         ))
     );
@@ -61,7 +61,7 @@ async fn registration_failed_if_username_exists() -> () {
     let reg_result = auth.register("User".to_string(), "12".to_string()).await;
     assert_eq!(
         reg_result,
-        Err(AppError::check("Username `User` already taken"))
+        Err(AppError::validation("Username `User` already taken"))
     );
 }
 

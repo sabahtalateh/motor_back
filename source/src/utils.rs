@@ -66,7 +66,7 @@ impl<T, E> IntoAppErr<T> for Result<T, E> {
     fn into_app_err(self) -> Result<T, AppError> {
         match self {
             Ok(ok) => Ok(ok),
-            Err(_) => Err(AppError::internal_server_error()),
+            Err(_) => Err(AppError::internal()),
         }
     }
 }

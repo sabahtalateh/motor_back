@@ -25,7 +25,7 @@ impl CheckServiceIf for CheckService {
         if password.len() >= self.pwd_min_len as usize {
             Ok(())
         } else {
-            Err(AppError::check(
+            Err(AppError::validation(
                 format!(
                     "password length should be at least `{}` characters",
                     self.pwd_min_len

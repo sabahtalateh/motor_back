@@ -84,7 +84,7 @@ impl AuthServiceIf for AuthService {
     async fn register(&self, login: String, password: String) -> AppResult<()> {
         self.check_service.strong_password(password.as_str())?;
         if self.check_service.username_exists(login.as_str()).await {
-            return Err(AppError::check(
+            return Err(AppError::validation(
                 format!("Username `{}` already taken", login).as_str(),
             ));
         }

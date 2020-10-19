@@ -34,3 +34,9 @@ async fn add_to_my_stack(&self, user: User, new_stack_item: NewStackItem) -> Sta
        let c = futures::join!(a, b);
 ```
 
+### тесты
+тесты запускать примерно так 
+```
+cargo test -- --nocapture --test services::stack --test-threads=1
+```
+

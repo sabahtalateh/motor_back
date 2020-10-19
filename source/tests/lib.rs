@@ -17,6 +17,7 @@ use motor_back::utils::AppResult;
 use shaku::HasComponent;
 use slog::Level;
 use std::sync::Arc;
+use motor_back::repos::users::{UsersRepoIf, User};
 
 const DEFAULT_USER_NAME: &str = "Ivan";
 const DEFAULT_PASSWORD: &str = "123123";
@@ -65,22 +66,38 @@ pub async fn setup() -> Container {
     init_app(&config).await
 }
 
-pub async fn setup_with_user(login: String, password: String) -> Container {
+pub async fn setup_with_user(login: String, password: String) -> (Container, User) {
     let container: Container = setup().await;
 
     let db: &dyn DBIf = container.resolve_ref();
-    db.get()
+
+    let user = db
+        .get()
         .collection("users")
-        .delete_one(doc! {"username": login.clone()}, None)
-        .await;
+        .find_one(Some(doc! {"username": login.clone()}), None)
+        .await
+        .unwrap();
+
+    match user {
+        Some(_) => {
+            db.get()
+                .collection("users")
+                .delete_one(doc! {"username": login.clone()}, None)
+                .await;
+        }
+        _ => (),
+    }
 
     let auth: &dyn AuthServiceIf = container.resolve_ref();
-    auth.register(login, password).await.unwrap();
+    auth.register(login.clone(), password).await.unwrap();
 
-    container
+    let user_repo: &dyn UsersRepoIf = container.resolve_ref();
+    let user = user_repo.find_by_username(&(login.clone())).await.unwrap();
+
+    (container, user)
 }
 
-pub async fn setup_with_default_user() -> Container {
+pub async fn setup_with_default_user() -> (Container, User) {
     setup_with_user(DEFAULT_USER_NAME.to_string(), DEFAULT_PASSWORD.to_string()).await
 }
 

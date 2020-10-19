@@ -44,7 +44,7 @@ impl Mutation {
         let user = auth.validate_access(&access, Utc::now()).await?;
 
         let stack_service: &dyn StackServiceIf = ctx.ctr.resolve_ref();
-        Ok(stack_service.add_to_my_stack(user, stack_item).await)
+        Ok(stack_service.add_to_my_stack(user, stack_item).await?)
     }
 
     pub async fn my_stack_edit(
