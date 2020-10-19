@@ -68,6 +68,16 @@ pub struct StackService {
 #[async_trait]
 impl StackServiceIf for StackService {
     async fn add_to_my_stack(&self, user: User, new_stack_item: NewStackItem) -> StackItem {
+        // TODO это убарть
+        // let ids = vec![Id("123".to_string())];
+        // let ids2 = vec![Id("456".to_string())];
+        //
+        // let a = self.marks_repo.find_by_ids(&ids);
+        // let b = self.marks_repo.find_by_ids(&ids2);
+        // // let b = self.marks_repo.find_by_ids(&vec![Id("456".to_string())]);
+        // let c = futures::join!(a, b);
+        // TODO вот досюда
+
         let stack_item_entity = self
             .stack_repo
             .insert(&NewStackItemEntity {
