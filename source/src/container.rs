@@ -5,6 +5,7 @@ use crate::db::DB;
 use crate::logger::AppLogger;
 
 use crate::repos::blocks::BlocksRepo;
+use crate::repos::stack_history::StackHistoryRepo;
 use crate::repos::marks::MarksRepo;
 use crate::repos::stack::StackRepo;
 use crate::repos::tokens::TokensRepo;
@@ -25,6 +26,7 @@ module! {
             // repo
             StackRepo,
             BlocksRepo,
+            StackHistoryRepo,
             MarksRepo,
             TokensRepo,
             UsersRepo,

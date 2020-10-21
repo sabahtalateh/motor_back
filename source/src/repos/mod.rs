@@ -1,9 +1,10 @@
 pub mod blocks;
+pub mod db;
 pub mod marks;
 pub mod stack;
+pub mod stack_history;
 pub mod tokens;
 pub mod users;
-pub mod db;
 
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
@@ -21,7 +22,13 @@ use slog::Logger;
 use std::fs::read_to_string;
 
 #[derive(Clone, Debug, GraphQLScalarValue, Hash)]
-pub struct Id(String);
+pub struct Id(pub String);
+
+impl Id {
+    pub fn from_str(str: &str) -> Id {
+        Id(str.to_string())
+    }
+}
 
 impl PartialEq for Id {
     fn eq(&self, other: &Self) -> bool {

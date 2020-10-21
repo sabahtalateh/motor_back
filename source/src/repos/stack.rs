@@ -19,8 +19,8 @@ use std::sync::Arc;
 pub trait StackRepoIf: Interface {
     async fn insert(&self, stack_item: &NewStackItem) -> StackItem;
     async fn update(&self, stack_item: &StackItem) -> StackItem;
-    async fn link_blocks(&self, stack_item: &StackItem, block_ids: &Vec<Id>) -> StackItem;
-    async fn link_marks(&self, stack_item: &StackItem, mark_ids: &Vec<Id>) -> StackItem;
+    async fn link_blocks(&self, stack_item: &StackItem, blocks_ids: &Vec<Id>) -> StackItem;
+    async fn link_marks(&self, stack_item: &StackItem, marks_ids: &Vec<Id>) -> StackItem;
     async fn find_by_user_id(&self, user_id: Id) -> Vec<StackItem>;
     async fn find_by_user_id_and_stack_item_id(
         &self,
@@ -43,9 +43,9 @@ pub struct StackRepo {
 #[derive(Serialize, Debug, Clone)]
 pub struct NewStackItem {
     pub user_id: Id,
-    pub title: Option<String>,
-    pub block_ids: Vec<Id>,
-    pub mark_ids: Vec<Id>,
+    pub blocks_ids: Vec<Id>,
+    pub marks_ids: Vec<Id>,
+    pub version: i32,
 }
 
 #[derive(Serialize, Debug)]
@@ -64,9 +64,8 @@ pub struct NewMark {
 pub struct StackItem {
     #[serde(rename = "_id")]
     pub id: Id,
-    pub title: Option<String>,
-    pub block_ids: Vec<Id>,
-    pub mark_ids: Vec<Id>,
+    pub blocks_ids: Vec<Id>,
+    pub marks_ids: Vec<Id>,
 }
 
 #[async_trait]
@@ -95,13 +94,13 @@ impl StackRepoIf for StackRepo {
         unimplemented!()
     }
 
-    async fn link_blocks(&self, stack_item: &StackItem, block_ids: &Vec<Id>) -> StackItem {
+    async fn link_blocks(&self, stack_item: &StackItem, blocks_ids: &Vec<Id>) -> StackItem {
         link_external_ids(
             &self.db.get(),
             "stack",
             &stack_item.id,
-            "block_ids",
-            block_ids,
+            "blocks_ids",
+            blocks_ids,
         )
         .await;
 
@@ -110,13 +109,13 @@ impl StackRepoIf for StackRepo {
             .unwrap()
     }
 
-    async fn link_marks(&self, stack_item: &StackItem, mark_ids: &Vec<Id>) -> StackItem {
+    async fn link_marks(&self, stack_item: &StackItem, marks_ids: &Vec<Id>) -> StackItem {
         link_external_ids(
             &self.db.get(),
             "stack",
             &stack_item.id,
-            "mark_ids",
-            mark_ids,
+            "marks_ids",
+            marks_ids,
         )
         .await;
 

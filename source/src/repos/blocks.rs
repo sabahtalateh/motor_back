@@ -25,14 +25,18 @@ pub struct Block {
     pub id: Id,
     pub stack_id: Id,
     pub text: String,
-    pub mark_ids: Vec<Id>,
+    pub marks_ids: Vec<Id>,
+    pub current_version: i32,
+    pub initial_version: i32,
 }
 
 #[derive(Serialize, Debug)]
 struct InsertBlock {
     stack_id: Id,
     text: String,
-    mark_ids: Vec<Id>,
+    marks_ids: Vec<Id>,
+    current_version: i32,
+    initial_version: i32,
 }
 
 #[async_trait]
@@ -44,7 +48,7 @@ pub trait BlocksRepoIf: Interface {
     /// returns (old_block, new_block)
     async fn update(&self, old: &Block, new_text: &str) -> (Block, Block);
 
-    async fn link_marks(&self, block: &Block, mark_ids: &Vec<Id>) -> Block;
+    async fn link_marks(&self, block: &Block, marks_ids: &Vec<Id>) -> Block;
 
     async fn find_by_ids(&self, ids: &Vec<Id>) -> Vec<Block>;
 }
@@ -63,15 +67,15 @@ pub struct BlocksRepo {
 #[async_trait]
 impl BlocksRepoIf for BlocksRepo {
     async fn insert(&self, stack_id: &Id, text: &str) -> Block {
-        let version_id: Id = ObjectId::new().into();
-
         let id = insert_one_into(
             &self.db.get(),
             "blocks",
             &InsertBlock {
                 stack_id: stack_id.clone(),
                 text: text.to_owned(),
-                mark_ids: vec![],
+                marks_ids: vec![],
+                current_version: 0,
+                initial_version: 0,
             },
             self.logger(),
         )
@@ -81,7 +85,9 @@ impl BlocksRepoIf for BlocksRepo {
             id: id.into(),
             stack_id: stack_id.clone(),
             text: text.to_owned(),
-            mark_ids: vec![],
+            marks_ids: vec![],
+            current_version: 0,
+            initial_version: 0,
         }
     }
 
@@ -98,7 +104,9 @@ impl BlocksRepoIf for BlocksRepo {
             &InsertBlock {
                 stack_id: old.stack_id,
                 text: old.text,
-                mark_ids: old.mark_ids,
+                marks_ids: old.marks_ids,
+                current_version: 0,
+                initial_version: 0,
             },
             self.logger(),
         )
@@ -117,8 +125,8 @@ impl BlocksRepoIf for BlocksRepo {
         (old_block, new_block)
     }
 
-    async fn link_marks(&self, block: &Block, mark_ids: &Vec<Id>) -> Block {
-        link_external_ids(&self.db.get(), "blocks", &block.id, "mark_ids", mark_ids).await;
+    async fn link_marks(&self, block: &Block, marks_ids: &Vec<Id>) -> Block {
+        link_external_ids(&self.db.get(), "blocks", &block.id, "marks_ids", marks_ids).await;
 
         find_one_by_id(&self.db.get(), "blocks", &block.id, self.logger())
             .await

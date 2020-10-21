@@ -1,10 +1,9 @@
+use crate::repos::Id;
 use juniper::GraphQLInputObject;
 use serde::{Deserialize, Serialize};
-use crate::repos::Id;
 
 #[derive(Debug, Clone, GraphQLInputObject)]
-pub struct NewStackItem {
-    pub title: Option<String>,
+pub struct AddStackItem {
     pub blocks: Vec<NewBlock>,
 }
 
@@ -23,8 +22,7 @@ pub struct NewMark {
 #[derive(Serialize, Debug, Clone, GraphQLInputObject)]
 pub struct UpdateStackItem {
     pub id: Id,
-    pub title: Option<String>,
-    pub blocks: Vec<UpdateBlock>
+    pub blocks: Vec<UpdateBlock>,
 }
 
 #[derive(Serialize, Debug, Clone, GraphQLInputObject)]
@@ -34,9 +32,25 @@ pub struct UpdateBlock {
     pub marks: Vec<UpdateMark>,
 }
 
+impl PartialEq for UpdateBlock {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.text == other.text && self.marks == other.marks
+    }
+}
+
+impl Eq for UpdateBlock {}
+
 #[derive(Serialize, Debug, Clone, GraphQLInputObject)]
 pub struct UpdateMark {
     pub id: Option<Id>,
     pub from: i32,
     pub to: i32,
 }
+
+impl PartialEq for UpdateMark {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.from == other.from && self.to == other.to
+    }
+}
+
+impl Eq for UpdateMark {}

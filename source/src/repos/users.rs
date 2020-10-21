@@ -36,7 +36,7 @@ pub struct NewUser {
     pub password: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct User {
     #[serde(rename = "_id")]
     pub id: Id,

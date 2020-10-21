@@ -1,6 +1,6 @@
 use crate::config::ConfigIf;
 use crate::errors::AppError;
-use crate::handlers::stack::{NewStackItem, UpdateStackItem};
+use crate::handlers::stack::{AddStackItem, UpdateStackItem};
 use crate::handlers::Context;
 use crate::repos::tokens::TokenPair;
 use crate::services::auth::AuthServiceIf;
@@ -37,7 +37,7 @@ impl Mutation {
 
     pub async fn my_stack_add(
         access: String,
-        stack_item: NewStackItem,
+        stack_item: AddStackItem,
         ctx: &Context,
     ) -> AppResult<StackItem> {
         let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();

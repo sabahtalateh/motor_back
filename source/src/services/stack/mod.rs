@@ -1,9 +1,13 @@
-use crate::handlers::stack::{NewStackItem, UpdateBlock, UpdateMark, UpdateStackItem};
+pub mod diff;
+
+use crate::errors::AppError;
+use crate::handlers::stack::{AddStackItem, UpdateBlock, UpdateMark, UpdateStackItem};
 use crate::logger::AppLoggerIf;
 use crate::repos::blocks::Block as BlockEntity;
 use crate::repos::blocks::BlocksRepoIf;
-use crate::repos::marks::{Mark as MarkEntity, MarksRepoIf, InsertMark};
+use crate::repos::marks::{InsertMark, Mark as MarkEntity, MarksRepoIf};
 use crate::repos::stack::{NewStackItem as NewStackItemEntity, StackRepoIf};
+use crate::repos::stack_history::StackHistoryRepoIf;
 use crate::repos::users::User;
 use crate::repos::Id;
 use crate::utils::{AppResult, OkOrNotFound};
@@ -15,32 +19,46 @@ use slog::Logger;
 use std::collections::HashMap;
 use std::iter::Map;
 use std::sync::Arc;
-use crate::errors::AppError;
 
-#[derive(GraphQLObject)]
+#[derive(Debug, Clone, GraphQLObject)]
 pub struct StackItem {
     pub id: Id,
-    pub title: Option<String>,
     pub blocks: Vec<Block>,
 }
 
-#[derive(GraphQLObject)]
+#[derive(Debug, Clone, GraphQLObject)]
 pub struct Block {
     pub id: Id,
     pub text: String,
     pub marks: Vec<Mark>,
 }
 
-#[derive(GraphQLObject)]
+impl PartialEq for Block {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.text == other.text && self.marks == other.marks
+    }
+}
+
+impl Eq for Block {}
+
+#[derive(Debug, Clone, GraphQLObject)]
 pub struct Mark {
     pub id: Id,
     pub from: i32,
     pub to: i32,
 }
 
+impl PartialEq for Mark {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.from == other.from && self.to == other.to
+    }
+}
+
+impl Eq for Mark {}
+
 #[async_trait]
 pub trait StackServiceIf: Interface {
-    async fn add_to_my_stack(&self, user: User, stack_item: NewStackItem) -> AppResult<StackItem>;
+    async fn add_to_my_stack(&self, user: User, stack_item: AddStackItem) -> AppResult<StackItem>;
     async fn update_stack_item(
         &self,
         user: User,
@@ -61,15 +79,66 @@ pub struct StackService {
     #[shaku(inject)]
     marks_repo: Arc<dyn MarksRepoIf>,
 
+    #[shaku(inject)]
+    stack_history_repo: Arc<dyn StackHistoryRepoIf>,
+
     #[logger]
     #[shaku(inject)]
     app_logger: Arc<dyn AppLoggerIf>,
 }
 
+impl StackService {
+    async fn find_stack_item_by_user_id_and_stack_item_id(
+        &self,
+        user_id: &Id,
+        stack_item_id: &Id,
+    ) -> Option<StackItem> {
+        let stack_item_entity = self
+            .stack_repo
+            .find_by_user_id_and_stack_item_id(user_id.clone(), stack_item_id.clone())
+            .await?;
+
+        let blocks_ids: Vec<Id> = stack_item_entity.blocks_ids;
+        let marks_ids: Vec<Id> = stack_item_entity.marks_ids;
+
+        let blocks = self.blocks_repo.find_by_ids(&blocks_ids).await;
+        let marks = self.marks_repo.find_by_ids(&marks_ids).await;
+
+        let mut stack_item_blocks = vec![];
+        for block_id in blocks_ids {
+            let block_entity = blocks.iter().find(|b| b.id == block_id).unwrap().clone();
+
+            let mut block_item_marks = vec![];
+            for mark_id in block_entity.marks_ids {
+                let mark_entity = marks.iter().find(|m| m.id == mark_id).unwrap().clone();
+                block_item_marks.push(Mark {
+                    id: mark_entity.id,
+                    from: mark_entity.from,
+                    to: mark_entity.to,
+                })
+            }
+
+            stack_item_blocks.push(Block {
+                id: block_entity.id,
+                text: block_entity.text,
+                marks: block_item_marks,
+            })
+        }
+        Some(StackItem {
+            id: stack_item_entity.id,
+            blocks: stack_item_blocks,
+        })
+    }
+}
+
 #[async_trait]
 impl StackServiceIf for StackService {
-    async fn add_to_my_stack(&self, user: User, new_stack_item: NewStackItem) -> AppResult<StackItem> {
-        if new_stack_item.title.is_none() && new_stack_item.blocks.len() == 0 {
+    async fn add_to_my_stack(
+        &self,
+        user: User,
+        new_stack_item: AddStackItem,
+    ) -> AppResult<StackItem> {
+        if new_stack_item.blocks.len() == 0 {
             return Err(AppError::validation("Can not add empty stack item"));
         }
 
@@ -87,14 +156,14 @@ impl StackServiceIf for StackService {
             .stack_repo
             .insert(&NewStackItemEntity {
                 user_id: user.id,
-                title: new_stack_item.title,
-                block_ids: vec![],
-                mark_ids: vec![],
+                blocks_ids: vec![],
+                marks_ids: vec![],
+                version: 0,
             })
             .await;
 
         let mut blocks = vec![];
-        let mut block_ids = vec![];
+        let mut blocks_ids = vec![];
 
         let mut marks = vec![];
         let mut marks_ids = vec![];
@@ -104,7 +173,7 @@ impl StackServiceIf for StackService {
                 .insert(&stack_item_entity.id, &b.text)
                 .await;
 
-            block_ids.push(inserted_block.id.clone());
+            blocks_ids.push(inserted_block.id.clone());
 
             let new_marks = b
                 .marks
@@ -144,7 +213,7 @@ impl StackServiceIf for StackService {
 
         let stack_item_entity = self
             .stack_repo
-            .link_blocks(&stack_item_entity, &block_ids)
+            .link_blocks(&stack_item_entity, &blocks_ids)
             .await;
 
         let stack_item_entity = self
@@ -154,7 +223,6 @@ impl StackServiceIf for StackService {
 
         Ok(StackItem {
             id: stack_item_entity.id,
-            title: stack_item_entity.title,
             blocks,
         })
     }
@@ -164,6 +232,25 @@ impl StackServiceIf for StackService {
         user: User,
         updated_stack_item: UpdateStackItem,
     ) -> AppResult<StackItem> {
+        if updated_stack_item.blocks.len() == 0 {
+            return Err(AppError::validation("Can not update to empty stack item"));
+        }
+
+        // First create history copy of blocks
+        let old_stack_item = self
+            .find_stack_item_by_user_id_and_stack_item_id(&user.id, &updated_stack_item.id)
+            .await
+            .ok_or(AppError::not_found("Stack item not found"))?;
+
+        let new_blocks = diff::get_new_blocks(&old_stack_item.blocks, &updated_stack_item.blocks);
+        println!("{:#?}", new_blocks);
+
+        unimplemented!();
+
+        // return Ok(old_stack_item);
+        // println!("{:#?}", old_stack_item);
+        // unimplemented!();
+
         let stack_item = self
             .stack_repo
             .find_by_user_id_and_stack_item_id(user.id, updated_stack_item.id)
@@ -171,7 +258,7 @@ impl StackServiceIf for StackService {
             .ok_or_not_found()?;
 
         let updated_blocks = updated_stack_item.blocks;
-        let old_blocks = self.blocks_repo.find_by_ids(&stack_item.block_ids).await;
+        let old_blocks = self.blocks_repo.find_by_ids(&stack_item.blocks_ids).await;
 
         // println!("UU");
         // println!("{:?}", updated_blocks);
@@ -214,7 +301,7 @@ impl StackServiceIf for StackService {
         // let mut marks_exists_in_removed_blocks = HashMap::new();
         // for removed in removed_old_blocks {
         // self.blocks_repo.delete(&removed.id).await;
-        // marks_exists_in_removed_blocks.insert(removed.id.clone(), removed.clone().mark_ids);
+        // marks_exists_in_removed_blocks.insert(removed.id.clone(), removed.clone().marks_ids);
         // }
 
         let updated_old_blocks: Vec<&BlockEntity> = old_blocks
@@ -254,23 +341,30 @@ impl StackServiceIf for StackService {
                 old_marks_removed_from_updated_blocks
                     .insert(&old.id, old_marks_removed_from_updated_block);
 
-                let old_marks_modified_in_updated_block: Vec<(MarkEntity, &UpdateMark)> = old_block_marks
-                    .clone()
-                    .into_iter()
-                    .filter(|m| {
-                        new.marks.iter().any(|new_m| match &new_m.id {
-                            None => false,
-                            Some(id) => id == &m.id && (m.from != new_m.from || m.to != new_m.to),
+                let old_marks_modified_in_updated_block: Vec<(MarkEntity, &UpdateMark)> =
+                    old_block_marks
+                        .clone()
+                        .into_iter()
+                        .filter(|m| {
+                            new.marks.iter().any(|new_m| match &new_m.id {
+                                None => false,
+                                Some(id) => {
+                                    id == &m.id && (m.from != new_m.from || m.to != new_m.to)
+                                }
+                            })
                         })
-                    })
-                    .map(|old_mark| {
-                        let new_mark = new.marks.iter().find(|new_m| match &new_m.id {
-                            None => false,
-                            Some(new_m_id) => new_m_id == &old_mark.id,
-                        }).unwrap();
-                        (old_mark, new_mark)
-                    })
-                    .collect();
+                        .map(|old_mark| {
+                            let new_mark = new
+                                .marks
+                                .iter()
+                                .find(|new_m| match &new_m.id {
+                                    None => false,
+                                    Some(new_m_id) => new_m_id == &old_mark.id,
+                                })
+                                .unwrap();
+                            (old_mark, new_mark)
+                        })
+                        .collect();
                 marks_modified_in_updated_blocks
                     .insert(&old.id, old_marks_modified_in_updated_block);
 
@@ -326,26 +420,26 @@ impl StackServiceIf for StackService {
 
         let blocks_ids: Vec<Id> = stack_item_entities
             .iter()
-            .map(|s| s.block_ids.clone())
+            .map(|s| s.blocks_ids.clone())
             .flatten()
             .collect();
-        let mark_ids: Vec<Id> = stack_item_entities
+        let marks_ids: Vec<Id> = stack_item_entities
             .iter()
-            .map(|s| s.mark_ids.clone())
+            .map(|s| s.marks_ids.clone())
             .flatten()
             .collect();
 
         let blocks = self.blocks_repo.find_by_ids(&blocks_ids).await;
-        let marks = self.marks_repo.find_by_ids(&mark_ids).await;
+        let marks = self.marks_repo.find_by_ids(&marks_ids).await;
 
         let mut stack = vec![];
         for item in stack_item_entities {
             let mut stack_item_blocks = vec![];
-            for block_id in item.block_ids {
+            for block_id in item.blocks_ids {
                 let block_entity = blocks.iter().find(|b| b.id == block_id).unwrap().clone();
 
                 let mut block_item_marks = vec![];
-                for mark_id in block_entity.mark_ids {
+                for mark_id in block_entity.marks_ids {
                     let mark_entity = marks.iter().find(|m| m.id == mark_id).unwrap().clone();
                     block_item_marks.push(Mark {
                         id: mark_entity.id,
@@ -362,7 +456,6 @@ impl StackServiceIf for StackService {
             }
             stack.push(StackItem {
                 id: item.id,
-                title: item.title,
                 blocks: stack_item_blocks,
             })
         }
