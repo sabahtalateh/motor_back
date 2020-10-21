@@ -25,32 +25,16 @@ pub struct UpdateStackItem {
     pub blocks: Vec<UpdateBlock>,
 }
 
-#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq, GraphQLInputObject)]
 pub struct UpdateBlock {
     pub id: Option<Id>,
     pub text: String,
     pub marks: Vec<UpdateMark>,
 }
 
-impl PartialEq for UpdateBlock {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && self.text == other.text && self.marks == other.marks
-    }
-}
-
-impl Eq for UpdateBlock {}
-
-#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq, GraphQLInputObject)]
 pub struct UpdateMark {
     pub id: Option<Id>,
     pub from: i32,
     pub to: i32,
 }
-
-impl PartialEq for UpdateMark {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && self.from == other.from && self.to == other.to
-    }
-}
-
-impl Eq for UpdateMark {}

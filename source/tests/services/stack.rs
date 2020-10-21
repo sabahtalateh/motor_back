@@ -1,5 +1,3 @@
-mod diff;
-
 use crate::{setup_with_default_user, trunc_collection};
 use motor_back::container::Container;
 use motor_back::errors::AppError;
@@ -25,7 +23,7 @@ async fn can_not_add_emtpy_item() {
 
     assert_eq!(
         result.map(|_| ()),
-        Err(AppError::validation("Can not add empty stack item"))
+        Err(AppError::validation("Can not add empty stacks item"))
     );
 }
 
@@ -85,9 +83,9 @@ async fn upd() {
     let db: &dyn DBIf = ctr.resolve_ref();
     trunc_collection(&db.get(), "marks").await;
     trunc_collection(&db.get(), "blocks").await;
-    trunc_collection(&db.get(), "stack").await;
+    trunc_collection(&db.get(), "stacks").await;
 
-    // Add stack item
+    // Add stacks item
     let result = stack
         .add_to_my_stack(
             user.clone(),
@@ -111,7 +109,7 @@ async fn upd() {
         .await
         .unwrap();
 
-    // Update stack item
+    // Update stacks item
     let nn = stack.update_stack_item(
         user,
         UpdateStackItem {
@@ -136,7 +134,7 @@ async fn upd() {
         },
     ).await;
 
-    // StackService::extract_new_blocks(stack, )
+    // StackService::extract_new_blocks(stacks, )
 
     println!("{:#?}", nn);
 }

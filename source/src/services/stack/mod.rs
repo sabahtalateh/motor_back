@@ -26,35 +26,88 @@ pub struct StackItem {
     pub blocks: Vec<Block>,
 }
 
-#[derive(Debug, Clone, GraphQLObject)]
+#[derive(Debug, Clone, PartialEq, Eq, GraphQLObject)]
 pub struct Block {
     pub id: Id,
     pub text: String,
     pub marks: Vec<Mark>,
 }
 
-impl PartialEq for Block {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && self.text == other.text && self.marks == other.marks
+impl PartialEq<UpdateBlock> for Block {
+    fn eq(&self, other: &UpdateBlock) -> bool {
+        // updated block must have id
+        if other.id.is_none() {
+            return false;
+        }
+
+        if &self.id != other.id.as_ref().unwrap() {
+            return false;
+        }
+
+        if self.text != other.text {
+            return false;
+        }
+
+        // updated marks must have ids and amount of marks equals to Block amount of marks
+        let updated_marks = &other.marks;
+        if updated_marks.len() != self.marks.len() {
+            return false;
+        }
+        let has_updated_mark_without_id = updated_marks.iter().any(|u| u.id.is_none());
+        if has_updated_mark_without_id {
+            return false;
+        }
+
+        // updated marks ids must be same as existent marks ids
+        let mut marks_ids: Vec<Id> = self.marks.iter().map(|m| m.id.clone()).collect();
+        let mut updated_marks_ids: Vec<Id> = other
+            .marks
+            .iter()
+            .map(|m| m.id.as_ref().unwrap().clone())
+            .collect();
+        marks_ids.sort();
+        updated_marks_ids.sort();
+        if marks_ids != updated_marks_ids {
+            return false;
+        }
+
+        for existent_mark in &self.marks {
+            // can not be None, checked previously so can unwrap
+            let updated_mark = updated_marks
+                .iter()
+                .find(|u| match &u.id {
+                    None => false,
+                    Some(id) => id == &existent_mark.id,
+                })
+                .unwrap();
+
+            if existent_mark != updated_mark {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 
-impl Eq for Block {}
-
-#[derive(Debug, Clone, GraphQLObject)]
+#[derive(Debug, Clone, PartialEq, Eq, GraphQLObject)]
 pub struct Mark {
     pub id: Id,
     pub from: i32,
     pub to: i32,
 }
 
-impl PartialEq for Mark {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && self.from == other.from && self.to == other.to
+impl PartialEq<UpdateMark> for Mark {
+    fn eq(&self, other: &UpdateMark) -> bool {
+        if other.id.is_none() {
+            return false;
+        }
+
+        return &self.id == other.id.as_ref().unwrap()
+            && self.from == other.from
+            && self.to == other.to;
     }
 }
-
-impl Eq for Mark {}
 
 #[async_trait]
 pub trait StackServiceIf: Interface {

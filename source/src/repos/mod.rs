@@ -20,8 +20,9 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize};
 use slog::Logger;
 use std::fs::read_to_string;
+use std::cmp::Ordering;
 
-#[derive(Clone, Debug, GraphQLScalarValue, Hash)]
+#[derive(Clone, Debug, GraphQLScalarValue, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id(pub String);
 
 impl Id {
@@ -29,13 +30,6 @@ impl Id {
         Id(str.to_string())
     }
 }
-
-impl PartialEq for Id {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-impl Eq for Id {}
 
 impl Id {
     pub fn new(val: String) -> Self {

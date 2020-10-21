@@ -28,19 +28,11 @@ impl ToString for AppErrorType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppError {
     message: String,
     error_type: AppErrorType,
 }
-
-impl PartialEq for AppError {
-    fn eq(&self, other: &Self) -> bool {
-        self.message == other.message && self.error_type == other.error_type
-    }
-}
-
-impl Eq for AppError {}
 
 impl AppError {
     fn new(message: &str, error_type: AppErrorType) -> AppError {

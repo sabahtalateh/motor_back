@@ -1,2 +1,2 @@
-mod stack;
 mod auth;
+mod stack;
