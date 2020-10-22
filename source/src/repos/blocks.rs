@@ -1,8 +1,7 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::repos::db::{
-    delete_by_id, find_many_by_ids, find_one_by_id, inc_version, insert_one_into,
-    link_external_ids, set_by_id,
+    delete_by_id, find_many_by_ids, find_one_by_id, insert_one_into, link_external_ids, set_by_id,
 };
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId, ToDocsVec};
 
@@ -18,12 +17,14 @@ use shaku::{Component, Interface};
 use slog::Logger;
 use std::pin::Pin;
 use std::sync::Arc;
+use crate::handlers::stack::NewBlock;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Block {
     #[serde(rename = "_id")]
     pub id: Id,
     pub stack_id: Id,
+    pub order: i32,
     pub text: String,
     pub marks_ids: Vec<Id>,
     pub current_version: i32,
@@ -31,17 +32,18 @@ pub struct Block {
 }
 
 #[derive(Serialize, Debug)]
-struct InsertBlock {
-    stack_id: Id,
-    text: String,
-    marks_ids: Vec<Id>,
-    current_version: i32,
-    initial_version: i32,
+pub struct InsertBlock {
+    pub stack_id: Id,
+    pub order: i32,
+    pub text: String,
+    pub marks_ids: Vec<Id>,
+    pub current_version: i32,
+    pub initial_version: i32,
 }
 
 #[async_trait]
 pub trait BlocksRepoIf: Interface {
-    async fn insert(&self, stack_id: &Id, text: &str) -> Block;
+    async fn insert(&self, insert_block: InsertBlock) -> Block;
 
     async fn delete(&self, id: &Id) -> bool;
 
@@ -66,28 +68,17 @@ pub struct BlocksRepo {
 
 #[async_trait]
 impl BlocksRepoIf for BlocksRepo {
-    async fn insert(&self, stack_id: &Id, text: &str) -> Block {
-        let id = insert_one_into(
-            &self.db.get(),
-            "blocks",
-            &InsertBlock {
-                stack_id: stack_id.clone(),
-                text: text.to_owned(),
-                marks_ids: vec![],
-                current_version: 0,
-                initial_version: 0,
-            },
-            self.logger(),
-        )
-        .await;
+    async fn insert(&self, insert_block: InsertBlock) -> Block {
+        let id = insert_one_into(&self.db.get(), "blocks", &insert_block, self.logger()).await;
 
         Block {
             id: id.into(),
-            stack_id: stack_id.clone(),
-            text: text.to_owned(),
+            stack_id: insert_block.stack_id,
+            order: insert_block.order,
+            text: insert_block.text,
             marks_ids: vec![],
-            current_version: 0,
-            initial_version: 0,
+            current_version: insert_block.current_version,
+            initial_version: insert_block.initial_version,
         }
     }
 
@@ -96,33 +87,34 @@ impl BlocksRepoIf for BlocksRepo {
     }
 
     async fn update(&self, old: &Block, new_text: &str) -> (Block, Block) {
-        let old = old.clone();
-
-        let inserted_id = insert_one_into(
-            &self.db.get(),
-            "blocks",
-            &InsertBlock {
-                stack_id: old.stack_id,
-                text: old.text,
-                marks_ids: old.marks_ids,
-                current_version: 0,
-                initial_version: 0,
-            },
-            self.logger(),
-        )
-        .await;
-
-        set_by_id(&self.db.get(), "blocks", &old.id, doc! { "text": new_text }).await;
-        inc_version(&self.db.get(), "blocks", &old.id).await;
-
-        let old_block = find_one_by_id(&self.db.get(), "blocks", &inserted_id, self.logger())
-            .await
-            .unwrap();
-        let new_block = find_one_by_id(&self.db.get(), "blocks", &old.id, self.logger())
-            .await
-            .unwrap();
-
-        (old_block, new_block)
+        unimplemented!()
+        // let old = old.clone();
+        //
+        // let inserted_id = insert_one_into(
+        //     &self.db.get(),
+        //     "blocks",
+        //     &InsertBlock {
+        //         stack_id: old.stack_id,
+        //         text: old.text,
+        //         marks_ids: old.marks_ids,
+        //         current_version: 0,
+        //         initial_version: 0,
+        //     },
+        //     self.logger(),
+        // )
+        // .await;
+        //
+        // set_by_id(&self.db.get(), "blocks", &old.id, doc! { "text": new_text }).await;
+        // // inc_version(&self.db.get(), "blocks", &old.id).await;
+        //
+        // let old_block = find_one_by_id(&self.db.get(), "blocks", &inserted_id, self.logger())
+        //     .await
+        //     .unwrap();
+        // let new_block = find_one_by_id(&self.db.get(), "blocks", &old.id, self.logger())
+        //     .await
+        //     .unwrap();
+        //
+        // (old_block, new_block)
     }
 
     async fn link_marks(&self, block: &Block, marks_ids: &Vec<Id>) -> Block {

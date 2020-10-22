@@ -5,6 +5,7 @@ use crate::utils::OkOrMongoRecordId;
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
 use bson::oid::ObjectId;
 use bson::Document;
+use futures::{FutureExt, StreamExt};
 use juniper::sa::_core::fmt::Debug;
 use juniper::GraphQLScalarValue;
 use mongodb::Database;
@@ -13,7 +14,6 @@ use serde::{Deserialize, Deserializer, Serialize};
 use slog::Logger;
 use std::fs::read_to_string;
 use std::pin::Pin;
-use futures::{FutureExt, StreamExt};
 
 pub(crate) async fn find_one_by_id<T>(
     db: &Database,
@@ -63,8 +63,8 @@ pub(crate) async fn find_many_by<T>(
     criteria: Document,
     logger: &Logger,
 ) -> Vec<T>
-    where
-        T: DeserializeOwned,
+where
+    T: DeserializeOwned,
 {
     db.collection(collection)
         .find(Some(criteria), None)
@@ -106,6 +106,46 @@ where
         .into()
 }
 
+pub async fn insert_many_into<T>(
+    db: &Database,
+    collection: &str,
+    many: Vec<&T>,
+    logger: &Logger,
+) -> Vec<Id>
+where
+    T: Serialize,
+{
+    if many.is_empty() {
+        return vec![];
+    }
+
+    let docs_vec: Vec<Document> = many
+        .iter()
+        .map(|x| bson::to_bson(x).unwrap().as_document().unwrap().clone())
+        .collect();
+
+    let insert_many_result = db
+        .collection(collection)
+        .insert_many(docs_vec, None)
+        .await
+        .log_err_with(logger)
+        .unwrap();
+
+    insert_many_result
+        .inserted_ids
+        .iter()
+        .map(|x| {
+            // as inserted id is always bson::Bson::ObjectId, second branch unreachable
+            match x.1 {
+                bson::Bson::ObjectId(oid) => oid,
+                _ => unreachable!(),
+            }
+            .clone()
+            .into()
+        })
+        .collect()
+}
+
 pub(crate) async fn set_by_id(db: &Database, collection: &str, id: &Id, set: Document) -> bool {
     let id: ObjectId = id.clone().into();
 
@@ -142,7 +182,7 @@ pub(crate) async fn delete_by_id(db: &Database, collection: &str, id: &Id) -> bo
     delete_result.deleted_count > 0
 }
 
-pub (crate) async fn delete_by(db: &Database, collection: &str, criteria: Document) -> bool {
+pub(crate) async fn delete_by(db: &Database, collection: &str, criteria: Document) -> bool {
     let delete_result = db
         .collection(collection)
         .delete_many(criteria, None)

@@ -1,9 +1,10 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
+use crate::repos::db::insert_many_into;
 use crate::repos::Id;
-use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId};
+use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId, Refs};
 
-use crate::repos::db::{find_many_by_ids, find_many_by};
+use crate::repos::db::{find_many_by, find_many_by_ids};
 use async_trait::async_trait;
 use bson::oid::ObjectId;
 use bson::{Bson, Document};
@@ -33,7 +34,7 @@ pub struct InsertMark {
 
 #[async_trait]
 pub trait MarksRepoIf: Interface {
-    async fn insert_many(&self, new_marks: &Vec<InsertMark>) -> Vec<Mark>;
+    async fn insert_many(&self, new_marks: Vec<&InsertMark>) -> Vec<Mark>;
     async fn find_by_ids(&self, ids: &Vec<Id>) -> Vec<Mark>;
     async fn find_by_block_id(&self, block_id: &Id) -> Vec<Mark>;
 }
@@ -51,44 +52,34 @@ pub struct MarksRepo {
 
 #[async_trait]
 impl MarksRepoIf for MarksRepo {
-    async fn insert_many(&self, new_marks: &Vec<InsertMark>) -> Vec<Mark> {
-        if new_marks.len() == 0 {
+    async fn insert_many(&self, insert_marks: Vec<&InsertMark>) -> Vec<Mark> {
+        if insert_marks.len() == 0 {
             return vec![];
         }
 
-        let insert_marks: Vec<InsertMark> = new_marks
-            .iter()
-            .map(|m| InsertMark {
-                block_id: m.block_id.clone(),
-                from: m.from,
-                to: m.to,
-            })
-            .collect();
+        let inserted_ids =
+            insert_many_into(&self.db.get(), "marks", insert_marks.refs(), &self.logger()).await;
 
-        let docs_vec: Vec<Document> = insert_marks
-            .iter()
-            .map(|x| bson::to_bson(x).unwrap().as_document().unwrap().clone())
-            .collect();
-
-        let inserted_result = self
-            .db
-            .get()
-            .collection("marks")
-            .insert_many(docs_vec, None)
-            .await
-            .log_err_with(self.logger())
-            .unwrap();
+        // let docs_vec: Vec<Document> = insert_marks
+        //     .iter()
+        //     .map(|x| bson::to_bson(x).unwrap().as_document().unwrap().clone())
+        //     .collect();
+        //
+        // let inserted_result = self
+        //     .db
+        //     .get()
+        //     .collection("marks")
+        //     .insert_many(docs_vec, None)
+        //     .await
+        //     .log_err_with(self.logger())
+        //     .unwrap();
 
         let mut out = vec![];
         for i in 0..insert_marks.len() {
             let mark = insert_marks.get(i).unwrap();
-            let inserted_id = match inserted_result.inserted_ids.get(&i).unwrap() {
-                Bson::ObjectId(oid) => oid,
-                _ => unreachable!(),
-            };
 
             out.push(Mark {
-                id: inserted_id.clone().into(),
+                id: inserted_ids.get(i).unwrap().clone(),
                 block_id: mark.block_id.clone(),
                 from: mark.from,
                 to: mark.to,
@@ -104,6 +95,12 @@ impl MarksRepoIf for MarksRepo {
 
     async fn find_by_block_id(&self, block_id: &Id) -> Vec<Mark> {
         let block_id: ObjectId = block_id.clone().into();
-        find_many_by(&self.db.get(), "marks", doc!{ "block_id": block_id }, self.logger()).await
+        find_many_by(
+            &self.db.get(),
+            "marks",
+            doc! { "block_id": block_id },
+            self.logger(),
+        )
+        .await
     }
 }

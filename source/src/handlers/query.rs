@@ -1,7 +1,8 @@
 use crate::config::ConfigIf;
+use crate::handlers::stack::{Block, Mark, StackItem};
 use crate::handlers::Context;
 use crate::services::auth::AuthServiceIf;
-use crate::services::stack::{StackServiceIf, StackItem};
+use crate::services::stack::StackServiceIf;
 use crate::utils::AppResult;
 use chrono::Utc;
 use shaku::HasComponent;
@@ -15,7 +16,12 @@ impl Query {
         let user = auth.validate_access(&access, Utc::now()).await?;
 
         let stack_service: &dyn StackServiceIf = ctx.ctr.resolve_ref();
-        Ok(stack_service.my_stack(user).await)
+        Ok(stack_service
+            .my_stack(user)
+            .await
+            .into_iter()
+            .map(|i| i.into())
+            .collect())
     }
 
     pub async fn api_version(ctx: &Context) -> String {

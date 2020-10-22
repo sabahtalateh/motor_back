@@ -124,3 +124,13 @@ where
             .collect()
     }
 }
+
+pub trait Refs<T> {
+    fn refs(&self) -> Vec<&T>;
+}
+
+impl<T> Refs<T> for Vec<T> {
+    fn refs(&self) -> Vec<&T> {
+        self.iter().map(|x| x).collect()
+    }
+}

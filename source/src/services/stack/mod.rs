@@ -1,16 +1,16 @@
 pub mod diff;
 
 use crate::errors::AppError;
-use crate::handlers::stack::{AddStackItem, UpdateBlock, UpdateMark, UpdateStackItem};
+use crate::handlers::stack::{NewStackItem, UpdateBlock, UpdateMark, UpdateStackItem};
 use crate::logger::AppLoggerIf;
-use crate::repos::blocks::Block as BlockEntity;
 use crate::repos::blocks::BlocksRepoIf;
+use crate::repos::blocks::{Block as BlockEntity, InsertBlock};
 use crate::repos::marks::{InsertMark, Mark as MarkEntity, MarksRepoIf};
 use crate::repos::stack::{NewStackItem as NewStackItemEntity, StackRepoIf};
-use crate::repos::stack_history::StackHistoryRepoIf;
+use crate::repos::stack_history::{InsertHistoryBlock, InsertHistoryMark, StackHistoryRepoIf};
 use crate::repos::users::User;
 use crate::repos::Id;
-use crate::utils::{AppResult, OkOrNotFound};
+use crate::utils::{AppResult, OkOrNotFound, Refs};
 use async_trait::async_trait;
 use juniper::{GraphQLInputObject, GraphQLObject};
 use proc_macro::HasLogger;
@@ -20,17 +20,20 @@ use std::collections::HashMap;
 use std::iter::Map;
 use std::sync::Arc;
 
-#[derive(Debug, Clone, GraphQLObject)]
+#[derive(Debug, Clone)]
 pub struct StackItem {
     pub id: Id,
     pub blocks: Vec<Block>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, GraphQLObject)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Block {
     pub id: Id,
+    pub stack_id: Id,
     pub text: String,
     pub marks: Vec<Mark>,
+    pub current_version: i32,
+    pub initial_version: i32,
 }
 
 impl PartialEq<UpdateBlock> for Block {
@@ -90,7 +93,7 @@ impl PartialEq<UpdateBlock> for Block {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, GraphQLObject)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mark {
     pub id: Id,
     pub from: i32,
@@ -111,7 +114,7 @@ impl PartialEq<UpdateMark> for Mark {
 
 #[async_trait]
 pub trait StackServiceIf: Interface {
-    async fn add_to_my_stack(&self, user: User, stack_item: AddStackItem) -> AppResult<StackItem>;
+    async fn add_to_my_stack(&self, user: User, stack_item: NewStackItem) -> AppResult<StackItem>;
     async fn update_stack_item(
         &self,
         user: User,
@@ -173,8 +176,11 @@ impl StackService {
 
             stack_item_blocks.push(Block {
                 id: block_entity.id,
+                stack_id: block_entity.stack_id,
                 text: block_entity.text,
                 marks: block_item_marks,
+                current_version: block_entity.current_version,
+                initial_version: block_entity.initial_version,
             })
         }
         Some(StackItem {
@@ -189,7 +195,7 @@ impl StackServiceIf for StackService {
     async fn add_to_my_stack(
         &self,
         user: User,
-        new_stack_item: AddStackItem,
+        new_stack_item: NewStackItem,
     ) -> AppResult<StackItem> {
         if new_stack_item.blocks.len() == 0 {
             return Err(AppError::validation("Can not add empty stack item"));
@@ -223,12 +229,19 @@ impl StackServiceIf for StackService {
         for b in new_stack_item.blocks {
             let inserted_block = self
                 .blocks_repo
-                .insert(&stack_item_entity.id, &b.text)
+                .insert(InsertBlock {
+                    stack_id: stack_item_entity.id.clone(),
+                    order: b.order,
+                    text: b.text,
+                    marks_ids: vec![],
+                    current_version: 0,
+                    initial_version: 0,
+                })
                 .await;
 
             blocks_ids.push(inserted_block.id.clone());
 
-            let new_marks = b
+            let new_marks: Vec<InsertMark> = b
                 .marks
                 .iter()
                 .map(|x| InsertMark {
@@ -237,7 +250,7 @@ impl StackServiceIf for StackService {
                     to: x.to,
                 })
                 .collect();
-            let inserted_marks = self.marks_repo.insert_many(&new_marks).await;
+            let inserted_marks = self.marks_repo.insert_many(new_marks.refs()).await;
             inserted_marks.iter().for_each(|m| {
                 marks.push(m.clone());
                 marks_ids.push(m.id.clone())
@@ -252,6 +265,7 @@ impl StackServiceIf for StackService {
 
             blocks.push(Block {
                 id: inserted_block.id,
+                stack_id: inserted_block.stack_id,
                 text: inserted_block.text,
                 marks: inserted_marks
                     .into_iter()
@@ -261,6 +275,8 @@ impl StackServiceIf for StackService {
                         to: m.to,
                     })
                     .collect(),
+                current_version: 0,
+                initial_version: 0,
             })
         }
 
@@ -295,8 +311,41 @@ impl StackServiceIf for StackService {
             .await
             .ok_or(AppError::not_found("Stack item not found"))?;
 
-        let new_blocks = diff::get_new_blocks(&old_stack_item.blocks, &updated_stack_item.blocks);
-        println!("{:#?}", new_blocks);
+        let deleted_blocks =
+            diff::get_deleted_blocks(&old_stack_item.blocks, &updated_stack_item.blocks);
+
+        let deleted_history_blocks: Vec<InsertHistoryBlock> = deleted_blocks
+            .iter()
+            .map(|x| x.clone().clone().into())
+            .collect();
+
+        let updated_blocks =
+            diff::get_updated_blocks(&old_stack_item.blocks, &updated_stack_item.blocks);
+
+        let updated_history_blocks: Vec<InsertHistoryBlock> = updated_blocks
+            .iter()
+            .map(|(x, _)| x.clone().clone().into())
+            .collect();
+
+        futures::join!(
+            self.stack_history_repo
+                .insert_many(deleted_history_blocks.refs()),
+            self.stack_history_repo
+                .insert_many(updated_history_blocks.refs())
+        );
+
+        // self.stack_history_repo
+        //     .insert_many(deleted_history_blocks.refs())
+        //     .await;
+        //
+        // self.stack_history_repo
+        //     .insert_many(updated_history_blocks.refs())
+        //     .await;
+
+        let added_blocks = diff::get_new_blocks(&old_stack_item.blocks, &updated_stack_item.blocks);
+
+        // let
+        println!("{:#?}", deleted_blocks);
 
         unimplemented!();
 
@@ -503,8 +552,11 @@ impl StackServiceIf for StackService {
 
                 stack_item_blocks.push(Block {
                     id: block_entity.id,
+                    stack_id: block_entity.stack_id,
                     text: block_entity.text,
                     marks: block_item_marks,
+                    current_version: block_entity.current_version,
+                    initial_version: block_entity.initial_version,
                 })
             }
             stack.push(StackItem {
