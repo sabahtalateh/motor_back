@@ -15,6 +15,8 @@ use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
 
+pub const COLLECTION: &str = "stack";
+
 #[async_trait]
 pub trait StackRepoIf: Interface {
     async fn insert(&self, stack_item: &NewStackItem) -> StackItem;
@@ -71,8 +73,8 @@ pub struct StackItem {
 #[async_trait]
 impl StackRepoIf for StackRepo {
     async fn insert(&self, stack_item: &NewStackItem) -> StackItem {
-        let id = insert_one_into(&self.db.get(), "stack", &stack_item, self.logger()).await;
-        find_one_by_id(&self.db.get(), "stack", &id, self.logger())
+        let id = insert_one_into(&self.db.get(), COLLECTION, &stack_item, self.logger()).await;
+        find_one_by_id(&self.db.get(), COLLECTION, &id, self.logger())
             .await
             .unwrap()
     }
@@ -97,7 +99,7 @@ impl StackRepoIf for StackRepo {
     async fn link_blocks(&self, stack_item: &StackItem, blocks_ids: &Vec<Id>) -> StackItem {
         link_external_ids(
             &self.db.get(),
-            "stack",
+            COLLECTION,
             &stack_item.id,
             "blocks_ids",
             blocks_ids,
@@ -112,14 +114,14 @@ impl StackRepoIf for StackRepo {
     async fn link_marks(&self, stack_item: &StackItem, marks_ids: &Vec<Id>) -> StackItem {
         link_external_ids(
             &self.db.get(),
-            "stack",
+            COLLECTION,
             &stack_item.id,
             "marks_ids",
             marks_ids,
         )
         .await;
 
-        find_one_by_id(&self.db.get(), "stack", &stack_item.id, self.logger())
+        find_one_by_id(&self.db.get(), COLLECTION, &stack_item.id, self.logger())
             .await
             .unwrap()
     }
@@ -129,7 +131,7 @@ impl StackRepoIf for StackRepo {
 
         self.db
             .get()
-            .collection("stack")
+            .collection(COLLECTION)
             .find(Some(doc! {"user_id": user_id}), None)
             .await
             .log_err_with(self.logger())
@@ -150,7 +152,7 @@ impl StackRepoIf for StackRepo {
 
         self.db
             .get()
-            .collection("stack")
+            .collection(COLLECTION)
             .find_one(Some(doc! {"user_id": user_id, "_id": stack_item_id}), None)
             .await
             .log_err_with(self.logger())

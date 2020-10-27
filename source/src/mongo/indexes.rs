@@ -1,12 +1,12 @@
-use mongodb::{Database};
 use bson::document::Document;
+use mongodb::Database;
 use std::vec::Vec;
 
 lazy_static! {
     static ref INDEX_COMMANDS: Vec<Document> = {
         vec![
             doc! {
-                "createIndexes": "users",
+                "createIndexes": crate::repos::users::COLLECTION,
                 "indexes": [{
                     "key": {"username": 1},
                     "name": "unique_username",
@@ -14,7 +14,7 @@ lazy_static! {
                 }]
             },
             doc! {
-                "createIndexes": "tokens",
+                "createIndexes": crate::repos::tokens::COLLECTION,
                 "indexes": [{
                     "key": {"access": 1},
                     "name": "unique_access_token",
@@ -22,10 +22,26 @@ lazy_static! {
                 }]
             },
             doc! {
-                "createIndexes": "tokens",
+                "createIndexes": crate::repos::tokens::COLLECTION,
                 "indexes": [{
                     "key": {"refresh": 1},
                     "name": "unique_refresh_token",
+                    "unique": true
+                }]
+            },
+            doc! {
+                "createIndexes": crate::repos::groups::COLLECTION,
+                "indexes": [{
+                    "key": {"creator_id": 1, "name": 1},
+                    "name": "creator_can_not_have_groups_with_same_names",
+                    "unique": true
+                }]
+            },
+            doc! {
+                "createIndexes": crate::repos::groups_ordering::COLLECTION,
+                "indexes": [{
+                    "key": {"user_id": 1, "order": 1},
+                    "name": "user_can_not_have_groups_with_same_orders",
                     "unique": true
                 }]
             },

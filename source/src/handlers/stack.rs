@@ -61,7 +61,6 @@ pub struct NewStackItem {
 
 #[derive(Serialize, Debug, Clone, GraphQLInputObject)]
 pub struct NewBlock {
-    pub order: i32,
     pub text: String,
     pub marks: Vec<NewMark>,
 }
@@ -73,20 +72,34 @@ pub struct NewMark {
 }
 
 #[derive(Serialize, Debug, Clone, GraphQLInputObject)]
-pub struct UpdateStackItem {
-    pub id: Id,
-    pub blocks: Vec<UpdateBlock>,
+pub struct StackItemChangeSet {
+    pub stack_id: Id,
+    pub inserted: Option<InsertChangeSet>,
+    pub removed: Vec<Id>,
+    pub updated: Vec<UpdateBlock>,
+}
+
+#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+pub struct InsertChangeSet {
+    pub insert_after_id: Option<Id>,
+    pub blocks: Vec<InsertBlock>,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq, GraphQLInputObject)]
-pub struct UpdateBlock {
-    pub id: Option<Id>,
+pub struct InsertBlock {
     pub text: String,
-    pub marks: Vec<UpdateMark>,
+    pub marks: Vec<ChangeMark>,
+}
+
+#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+pub struct UpdateBlock {
+    pub id: Id,
+    pub text: String,
+    pub marks: Vec<ChangeMark>,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq, GraphQLInputObject)]
-pub struct UpdateMark {
+pub struct ChangeMark {
     pub id: Option<Id>,
     pub from: i32,
     pub to: i32,

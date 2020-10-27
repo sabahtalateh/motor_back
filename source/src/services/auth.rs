@@ -3,7 +3,6 @@ use crate::logger::AppLoggerIf;
 use crate::repos::tokens::{TokenPair, TokensRepoIf};
 use crate::repos::users::{NewUser, User, UsersRepoIf};
 use crate::repos::Id;
-use crate::services::check::CheckServiceIf;
 use crate::utils::{AppResult, IntoAppErr, LogErrWith, OkOrUnauthorized};
 use async_trait::async_trait;
 use bcrypt::{hash, verify, DEFAULT_COST};
@@ -36,9 +35,6 @@ pub struct AuthService {
     #[shaku(inject)]
     tokens_repo: Arc<dyn TokensRepoIf>,
 
-    #[shaku(inject)]
-    check_service: Arc<dyn CheckServiceIf>,
-
     #[logger]
     #[shaku(inject)]
     app_logger: Arc<dyn AppLoggerIf>,
@@ -48,6 +44,9 @@ pub struct AuthService {
 
     #[shaku(no_default)]
     refresh_token_lifetime: Duration,
+
+    #[shaku(no_default)]
+    pwd_min_len: u32
 }
 
 impl AuthService {
@@ -82,8 +81,8 @@ impl AuthServiceIf for AuthService {
     }
 
     async fn register(&self, login: String, password: String) -> AppResult<()> {
-        self.check_service.strong_password(password.as_str())?;
-        if self.check_service.username_exists(login.as_str()).await {
+        self.is_strong_password(password.as_str())?;
+        if self.username_exists(login.as_str()).await {
             return Err(AppError::validation(
                 format!("Username `{}` already taken", login).as_str(),
             ));
@@ -158,4 +157,29 @@ impl AuthService {
         };
         token
     }
+
+    fn is_strong_password(&self, password: &str) -> AppResult<()> {
+        if password.len() >= self.pwd_min_len as usize {
+            Ok(())
+        } else {
+            Err(AppError::validation(
+                format!(
+                    "password length should be at least `{}` characters",
+                    self.pwd_min_len
+                )
+                    .as_str(),
+            ))
+        }
+    }
+
+    async fn username_exists(&self, username: &str) -> bool {
+        match self.users_repo.find_by_username(username).await {
+            Some(_) => true,
+            None => false,
+        }
+    }
 }
+
+
+
+

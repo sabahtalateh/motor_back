@@ -19,6 +19,8 @@ use std::pin::Pin;
 use std::sync::Arc;
 use crate::handlers::stack::NewBlock;
 
+pub const COLLECTION: &str = "blocks";
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Block {
     #[serde(rename = "_id")]
@@ -52,7 +54,7 @@ pub trait BlocksRepoIf: Interface {
 
     async fn link_marks(&self, block: &Block, marks_ids: &Vec<Id>) -> Block;
 
-    async fn find_by_ids(&self, ids: &Vec<Id>) -> Vec<Block>;
+    async fn find_by_ids(&self, ids: Vec<&Id>) -> Vec<Block>;
 }
 
 #[shaku(interface = BlocksRepoIf)]
@@ -69,7 +71,7 @@ pub struct BlocksRepo {
 #[async_trait]
 impl BlocksRepoIf for BlocksRepo {
     async fn insert(&self, insert_block: InsertBlock) -> Block {
-        let id = insert_one_into(&self.db.get(), "blocks", &insert_block, self.logger()).await;
+        let id = insert_one_into(&self.db.get(), COLLECTION, &insert_block, self.logger()).await;
 
         Block {
             id: id.into(),
@@ -83,7 +85,7 @@ impl BlocksRepoIf for BlocksRepo {
     }
 
     async fn delete(&self, id: &Id) -> bool {
-        set_by_id(&self.db.get(), "blocks", id, doc! {"removed": true}).await
+        set_by_id(&self.db.get(), COLLECTION, id, doc! {"removed": true}).await
     }
 
     async fn update(&self, old: &Block, new_text: &str) -> (Block, Block) {
@@ -92,7 +94,7 @@ impl BlocksRepoIf for BlocksRepo {
         //
         // let inserted_id = insert_one_into(
         //     &self.db.get(),
-        //     "blocks",
+        //     COLLECTION,
         //     &InsertBlock {
         //         stack_id: old.stack_id,
         //         text: old.text,
@@ -104,13 +106,13 @@ impl BlocksRepoIf for BlocksRepo {
         // )
         // .await;
         //
-        // set_by_id(&self.db.get(), "blocks", &old.id, doc! { "text": new_text }).await;
-        // // inc_version(&self.db.get(), "blocks", &old.id).await;
+        // set_by_id(&self.db.get(), COLLECTION, &old.id, doc! { "text": new_text }).await;
+        // // inc_version(&self.db.get(), COLLECTION, &old.id).await;
         //
-        // let old_block = find_one_by_id(&self.db.get(), "blocks", &inserted_id, self.logger())
+        // let old_block = find_one_by_id(&self.db.get(), COLLECTION, &inserted_id, self.logger())
         //     .await
         //     .unwrap();
-        // let new_block = find_one_by_id(&self.db.get(), "blocks", &old.id, self.logger())
+        // let new_block = find_one_by_id(&self.db.get(), COLLECTION, &old.id, self.logger())
         //     .await
         //     .unwrap();
         //
@@ -118,14 +120,14 @@ impl BlocksRepoIf for BlocksRepo {
     }
 
     async fn link_marks(&self, block: &Block, marks_ids: &Vec<Id>) -> Block {
-        link_external_ids(&self.db.get(), "blocks", &block.id, "marks_ids", marks_ids).await;
+        link_external_ids(&self.db.get(), COLLECTION, &block.id, "marks_ids", marks_ids).await;
 
-        find_one_by_id(&self.db.get(), "blocks", &block.id, self.logger())
+        find_one_by_id(&self.db.get(), COLLECTION, &block.id, self.logger())
             .await
             .unwrap()
     }
 
-    async fn find_by_ids(&self, ids: &Vec<Id>) -> Vec<Block> {
-        find_many_by_ids(&self.db.get(), "blocks", ids, self.logger()).await
+    async fn find_by_ids(&self, ids: Vec<&Id>) -> Vec<Block> {
+        find_many_by_ids(&self.db.get(), COLLECTION, ids, self.logger()).await
     }
 }

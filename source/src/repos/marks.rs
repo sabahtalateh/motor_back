@@ -16,6 +16,8 @@ use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
 
+pub const COLLECTION: &str = "marks";
+
 #[derive(Clone, Deserialize, Debug)]
 pub struct Mark {
     #[serde(rename = "_id")]
@@ -35,7 +37,7 @@ pub struct InsertMark {
 #[async_trait]
 pub trait MarksRepoIf: Interface {
     async fn insert_many(&self, new_marks: Vec<&InsertMark>) -> Vec<Mark>;
-    async fn find_by_ids(&self, ids: &Vec<Id>) -> Vec<Mark>;
+    async fn find_by_ids(&self, ids: Vec<&Id>) -> Vec<Mark>;
     async fn find_by_block_id(&self, block_id: &Id) -> Vec<Mark>;
 }
 
@@ -58,7 +60,7 @@ impl MarksRepoIf for MarksRepo {
         }
 
         let inserted_ids =
-            insert_many_into(&self.db.get(), "marks", insert_marks.refs(), &self.logger()).await;
+            insert_many_into(&self.db.get(), COLLECTION, insert_marks.refs(), &self.logger()).await;
 
         // let docs_vec: Vec<Document> = insert_marks
         //     .iter()
@@ -68,7 +70,7 @@ impl MarksRepoIf for MarksRepo {
         // let inserted_result = self
         //     .db
         //     .get()
-        //     .collection("marks")
+        //     .collection(COLLECTION)
         //     .insert_many(docs_vec, None)
         //     .await
         //     .log_err_with(self.logger())
@@ -89,15 +91,15 @@ impl MarksRepoIf for MarksRepo {
         out
     }
 
-    async fn find_by_ids(&self, ids: &Vec<Id>) -> Vec<Mark> {
-        find_many_by_ids(&self.db.get(), "marks", ids, self.logger()).await
+    async fn find_by_ids(&self, ids: Vec<&Id>) -> Vec<Mark> {
+        find_many_by_ids(&self.db.get(), COLLECTION, ids, self.logger()).await
     }
 
     async fn find_by_block_id(&self, block_id: &Id) -> Vec<Mark> {
         let block_id: ObjectId = block_id.clone().into();
         find_many_by(
             &self.db.get(),
-            "marks",
+            COLLECTION,
             doc! { "block_id": block_id },
             self.logger(),
         )

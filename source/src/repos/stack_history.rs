@@ -20,6 +20,8 @@ use slog::Logger;
 use std::pin::Pin;
 use std::sync::Arc;
 
+pub const COLLECTION: &str = "stack_history";
+
 #[derive(Serialize, Debug)]
 pub struct InsertHistoryBlock {
     pub stack_id: Id,
@@ -77,6 +79,6 @@ pub struct StackHistoryRepo {
 #[async_trait]
 impl StackHistoryRepoIf for StackHistoryRepo {
     async fn insert_many(&self, blocks: Vec<&InsertHistoryBlock>) {
-        insert_many_into(&self.db.get(), "stack_history", blocks, &self.logger()).await;
+        insert_many_into(&self.db.get(), COLLECTION, blocks, &self.logger()).await;
     }
 }

@@ -102,5 +102,5 @@ pub async fn setup_with_default_user() -> (Container, User) {
 }
 
 pub async fn trunc_collection(db: &Database, collection: &str) -> () {
-    db.collection(collection).delete_many(doc! {}, None).await;
+    db.collection(collection).delete_many(doc! {}, None).await.unwrap();
 }

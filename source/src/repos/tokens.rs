@@ -12,6 +12,8 @@ use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
 
+pub const COLLECTION: &str = "tokens";
+
 #[async_trait]
 pub trait TokensRepoIf: Interface {
     async fn find_by_access(&self, access: &str) -> Option<TokenPair>;
@@ -47,7 +49,7 @@ impl TokensRepoIf for TokensRepo {
     async fn find_by_access(&self, access: &str) -> Option<TokenPair> {
         self.db
             .get()
-            .collection("tokens")
+            .collection(COLLECTION)
             .find_one(Some(doc! {"access": access}), None)
             .await
             .log_err_with(self.logger())
@@ -59,7 +61,7 @@ impl TokensRepoIf for TokensRepo {
     async fn find_by_refresh(&self, refresh: &str) -> Option<TokenPair> {
         self.db
             .get()
-            .collection("tokens")
+            .collection(COLLECTION)
             .find_one(Some(doc! {"refresh": refresh}), None)
             .await
             .log_err_with(self.logger())
@@ -77,7 +79,7 @@ impl TokensRepoIf for TokensRepo {
 
         self.db
             .get()
-            .collection("tokens")
+            .collection(COLLECTION)
             .insert_one(inserting_doc, None)
             .await
             .log_err_with(self.logger())

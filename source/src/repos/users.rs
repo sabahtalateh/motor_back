@@ -1,6 +1,7 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::repos::db::find_one_by_id;
+use crate::repos::Id;
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
 use async_trait::async_trait;
 use bson::oid::ObjectId;
@@ -10,7 +11,8 @@ use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
-use crate::repos::Id;
+
+pub const COLLECTION: &str = "users";
 
 #[async_trait]
 pub trait UsersRepoIf: Interface {
@@ -59,7 +61,7 @@ impl UsersRepoIf for UsersRepo {
 
         self.db
             .get()
-            .collection("users")
+            .collection(COLLECTION)
             .insert_one(inserting_doc, None)
             .await
             .log_err_with(self.logger())
@@ -69,7 +71,7 @@ impl UsersRepoIf for UsersRepo {
     async fn find_by_username(&self, username: &str) -> Option<User> {
         self.db
             .get()
-            .collection("users")
+            .collection(COLLECTION)
             .find_one(Some(doc! {"username": username}), None)
             .await
             .log_err_with(self.logger())

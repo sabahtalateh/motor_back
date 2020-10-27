@@ -38,7 +38,7 @@ where
 pub(crate) async fn find_many_by_ids<T>(
     db: &Database,
     collection: &str,
-    ids: &Vec<Id>,
+    ids: Vec<&Id>,
     logger: &Logger,
 ) -> Vec<T>
 where
