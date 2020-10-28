@@ -1,6 +1,6 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::db::{insert_many_into, insert_one_into};
+use crate::repos::db::{find_one_by, find_one_by_id, insert_many_into, insert_one_into};
 use crate::repos::Id;
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId, Refs};
 
@@ -26,6 +26,7 @@ pub struct InsertGroup {
 
 #[derive(Debug, Deserialize)]
 pub struct Group {
+    #[serde(rename="_id")]
     pub id: Id,
     pub creator_id: Id,
     pub name: String,
@@ -33,6 +34,7 @@ pub struct Group {
 
 #[async_trait]
 pub trait GroupsRepoIf: Interface {
+    async fn find_by_creator_id_and_name(&self, creator_id: &Id, name: &str) -> Option<Group>;
     async fn insert(&self, group: InsertGroup) -> Group;
 }
 
@@ -49,6 +51,17 @@ pub struct GroupsRepo {
 
 #[async_trait]
 impl GroupsRepoIf for GroupsRepo {
+    async fn find_by_creator_id_and_name(&self, creator_id: &Id, name: &str) -> Option<Group> {
+        let creator_id: ObjectId = creator_id.clone().into();
+        find_one_by(
+            &self.db.get(),
+            COLLECTION,
+            doc! {"creator_id": creator_id, "name": name},
+            self.logger(),
+        )
+        .await
+    }
+
     async fn insert(&self, group: InsertGroup) -> Group {
         let id = insert_one_into(&self.db.get(), COLLECTION, &group, self.logger()).await;
         Group {

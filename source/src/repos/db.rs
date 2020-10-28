@@ -14,6 +14,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use slog::Logger;
 use std::fs::read_to_string;
 use std::pin::Pin;
+use mongodb::options::UpdateOptions;
 
 pub(crate) async fn find_one_by_id<T>(
     db: &Database,
@@ -32,7 +33,25 @@ where
         .log_err_with(logger)
         .into_app_err()
         .unwrap()
-        .map(|u| deserialize_bson(&u))
+        .map(|x| deserialize_bson(&x))
+}
+
+pub(crate) async fn find_one_by<T>(
+    db: &Database,
+    collection: &str,
+    criteria: Document,
+    logger: &Logger,
+) -> Option<T>
+where
+    T: DeserializeOwned,
+{
+    db.collection(collection)
+        .find_one(Some(criteria), None)
+        .await
+        .log_err_with(logger)
+        .into_app_err()
+        .unwrap()
+        .map(|x| deserialize_bson(&x))
 }
 
 pub(crate) async fn find_many_by_ids<T>(

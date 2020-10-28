@@ -1,4 +1,5 @@
 use crate::errors::AppError;
+use crate::handlers::groups::UserGroup;
 use crate::logger::AppLoggerIf;
 use crate::repos::db::find_one_by_id;
 use crate::repos::groups::{GroupsRepoIf, InsertGroup};
@@ -18,7 +19,7 @@ use uuid::Uuid;
 
 #[async_trait]
 pub trait GroupsServiceIf: Interface {
-    async fn create(&self, user: &User, name: &str, after: Option<&Id>) -> AppResult<Id>;
+    async fn create(&self, user: &User, name: &str, after: Option<&Id>) -> AppResult<UserGroup>;
 }
 
 #[derive(Component, HasLogger)]
@@ -37,8 +38,17 @@ pub struct GroupsService {
 
 #[async_trait]
 impl GroupsServiceIf for GroupsService {
-    async fn create(&self, user: &User, name: &str, after: Option<&Id>) -> AppResult<Id> {
-        // проверить есть ли уже такая группа у пользователя
+    async fn create(&self, user: &User, name: &str, after: Option<&Id>) -> AppResult<UserGroup> {
+        if let Some(_) = self
+            .groups_repo
+            .find_by_creator_id_and_name(&user.id, name)
+            .await
+        {
+            return Err(AppError::validation(&format!(
+                "Group `{}` already exists",
+                name
+            )));
+        }
 
         let group_entity = self
             .groups_repo
@@ -48,20 +58,35 @@ impl GroupsServiceIf for GroupsService {
             })
             .await;
 
-        let order = 0;
-        // match after {
-        // Some(order) =>
-        // }
+        let order_of_new_group = match after {
+            Some(group_id) => match self
+                .groups_ordering_repo
+                .find_by_user_id_and_group_id(&user.id, group_id)
+                .await
+            {
+                Some(group) => group.order + 1,
+                None => 0,
+            },
+            None => 0,
+        };
 
         self.groups_ordering_repo
-            .increment_orders(&user.id, order)
+            .increment_orders_by_user_id(&user.id, order_of_new_group)
             .await;
-        self.groups_ordering_repo.insert(InsertGroupOrder {
-            user_id: (&user.id).clone(),
-            group_id: group_entity.id,
-            order,
-        }).await;
 
-        unimplemented!()
+        let new_group_id = self
+            .groups_ordering_repo
+            .insert(InsertGroupOrder {
+                user_id: (&user.id).clone(),
+                group_id: group_entity.id,
+                order: order_of_new_group,
+            })
+            .await;
+
+        Ok(UserGroup {
+            id: new_group_id,
+            name: name.to_string(),
+            order: order_of_new_group,
+        })
     }
 }

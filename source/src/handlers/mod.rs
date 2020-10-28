@@ -1,6 +1,7 @@
 mod mutation;
 mod query;
 pub mod stack;
+pub mod groups;
 
 use crate::container::Container;
 use crate::handlers::mutation::Mutation;

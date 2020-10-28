@@ -37,14 +37,6 @@ lazy_static! {
                     "unique": true
                 }]
             },
-            doc! {
-                "createIndexes": crate::repos::groups_ordering::COLLECTION,
-                "indexes": [{
-                    "key": {"user_id": 1, "order": 1},
-                    "name": "user_can_not_have_groups_with_same_orders",
-                    "unique": true
-                }]
-            },
         ]
     };
 }

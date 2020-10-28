@@ -1,5 +1,6 @@
 use crate::config::ConfigIf;
 use crate::errors::AppError;
+use crate::handlers::groups::UserGroup;
 use crate::handlers::stack::{Block, Mark, NewStackItem, StackItem, StackItemChangeSet};
 use crate::handlers::Context;
 use crate::repos::tokens::TokenPair;
@@ -42,14 +43,12 @@ impl Mutation {
         name: String,
         insert_after: Option<Id>,
         ctx: &Context,
-    ) -> AppResult<String> {
+    ) -> AppResult<UserGroup> {
         let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();
         let user = auth.validate_access(&access, Utc::now()).await?;
 
         let groups: &dyn GroupsServiceIf = ctx.ctr.resolve_ref();
-        let rr = groups.create(&user, &name, insert_after.as_ref()).await?;
-
-        Ok("123".to_string())
+        groups.create(&user, &name, insert_after.as_ref()).await
     }
 
     pub async fn my_stack_add(
