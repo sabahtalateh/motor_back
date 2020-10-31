@@ -1,10 +1,6 @@
-
 use proc_macro::{TokenStream, TokenTree};
 use proc_macro_error::abort_call_site;
-
-
 use syn;
-
 
 pub(crate) fn applied_to_struct(input: TokenStream) -> bool {
     let mut is_struct = false;

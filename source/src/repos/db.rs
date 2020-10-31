@@ -8,13 +8,13 @@ use bson::Document;
 use futures::{FutureExt, StreamExt};
 use juniper::sa::_core::fmt::Debug;
 use juniper::GraphQLScalarValue;
+use mongodb::options::{FindOneOptions, FindOptions, UpdateOptions};
 use mongodb::Database;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize};
 use slog::Logger;
 use std::fs::read_to_string;
 use std::pin::Pin;
-use mongodb::options::UpdateOptions;
 
 pub(crate) async fn find_one_by_id<T>(
     db: &Database,
@@ -81,12 +81,13 @@ pub(crate) async fn find_many_by<T>(
     collection: &str,
     criteria: Document,
     logger: &Logger,
+    find_options: Option<FindOptions>,
 ) -> Vec<T>
 where
     T: DeserializeOwned,
 {
     db.collection(collection)
-        .find(Some(criteria), None)
+        .find(Some(criteria), find_options)
         .await
         .log_err_with(logger)
         .into_app_err()

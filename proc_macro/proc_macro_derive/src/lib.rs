@@ -64,7 +64,6 @@ pub fn service(args: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_derive(HasLogger, attributes(logger))]
 pub fn has_logger(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
-
     let name = &ast.ident;
 
     let helpers = extract_helpers(
@@ -79,8 +78,8 @@ pub fn has_logger(input: TokenStream) -> TokenStream {
 
     let (logger_field, _) = helpers.get(0).unwrap();
 
-    let bb: Vec<String> = helpers.iter().map(|(x, _y)| format!("{}", x)).collect();
-    let _bbb: String = bb.join(",");
+    // let bb: Vec<String> = helpers.iter().map(|(x, _y)| format!("{}", x)).collect();
+    // let _bbb: String = bb.join(",");
 
     let tt = quote! {
         impl HasLogger for #name {

@@ -26,14 +26,24 @@ pub struct InsertGroup {
 
 #[derive(Debug, Deserialize)]
 pub struct Group {
-    #[serde(rename="_id")]
+    #[serde(rename = "_id")]
     pub id: Id,
     pub creator_id: Id,
     pub name: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct OrderedGroup {
+    // #[serde(rename = "_id")]
+    // pub id: Id,
+    // pub creator_id: Id,
+    // pub name: String,
+    pub order: i32,
+}
+
 #[async_trait]
 pub trait GroupsRepoIf: Interface {
+    async fn find_by_ids(&self, ids: Vec<&Id>) -> Vec<Group>;
     async fn find_by_creator_id_and_name(&self, creator_id: &Id, name: &str) -> Option<Group>;
     async fn insert(&self, group: InsertGroup) -> Group;
 }
@@ -51,6 +61,10 @@ pub struct GroupsRepo {
 
 #[async_trait]
 impl GroupsRepoIf for GroupsRepo {
+    async fn find_by_ids(&self, ids: Vec<&Id>) -> Vec<Group> {
+        find_many_by_ids(&self.db.get(), COLLECTION, ids, self.logger()).await
+    }
+
     async fn find_by_creator_id_and_name(&self, creator_id: &Id, name: &str) -> Option<Group> {
         let creator_id: ObjectId = creator_id.clone().into();
         find_one_by(
@@ -63,6 +77,8 @@ impl GroupsRepoIf for GroupsRepo {
     }
 
     async fn insert(&self, group: InsertGroup) -> Group {
+        println!("INSERT!!");
+
         let id = insert_one_into(&self.db.get(), COLLECTION, &group, self.logger()).await;
         Group {
             id,

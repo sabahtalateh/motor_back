@@ -48,7 +48,7 @@ impl Mutation {
         let user = auth.validate_access(&access, Utc::now()).await?;
 
         let groups: &dyn GroupsServiceIf = ctx.ctr.resolve_ref();
-        groups.create(&user, &name, insert_after.as_ref()).await
+        groups.add(&user, &name, insert_after.as_ref()).await
     }
 
     pub async fn my_stack_add(

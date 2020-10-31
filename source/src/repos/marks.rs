@@ -59,8 +59,13 @@ impl MarksRepoIf for MarksRepo {
             return vec![];
         }
 
-        let inserted_ids =
-            insert_many_into(&self.db.get(), COLLECTION, insert_marks.refs(), &self.logger()).await;
+        let inserted_ids = insert_many_into(
+            &self.db.get(),
+            COLLECTION,
+            insert_marks.refs(),
+            &self.logger(),
+        )
+        .await;
 
         // let docs_vec: Vec<Document> = insert_marks
         //     .iter()
@@ -102,6 +107,7 @@ impl MarksRepoIf for MarksRepo {
             COLLECTION,
             doc! { "block_id": block_id },
             self.logger(),
+            None,
         )
         .await
     }

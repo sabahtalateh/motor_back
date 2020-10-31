@@ -7,6 +7,7 @@ use crate::repos::groups_ordering::{GroupsOrderingRepoIf, InsertGroupOrder};
 use crate::repos::tokens::{TokenPair, TokensRepoIf};
 use crate::repos::users::{NewUser, User, UsersRepoIf};
 use crate::repos::Id;
+use crate::services::{PagedResponse, Paging};
 use crate::utils::{AppResult, IntoAppErr, LogErrWith, OkOrUnauthorized};
 use async_trait::async_trait;
 use bcrypt::{hash, verify, DEFAULT_COST};
@@ -17,9 +18,12 @@ use slog::Logger;
 use std::sync::Arc;
 use uuid::Uuid;
 
+pub const PAGING_MAX_LIMIT: i32 = 1000;
+
 #[async_trait]
 pub trait GroupsServiceIf: Interface {
-    async fn create(&self, user: &User, name: &str, after: Option<&Id>) -> AppResult<UserGroup>;
+    async fn add(&self, user: &User, name: &str, after: Option<&Id>) -> AppResult<UserGroup>;
+    async fn list(&self, user: &User, paging: &Paging) -> AppResult<PagedResponse<UserGroup>>;
 }
 
 #[derive(Component, HasLogger)]
@@ -38,7 +42,7 @@ pub struct GroupsService {
 
 #[async_trait]
 impl GroupsServiceIf for GroupsService {
-    async fn create(&self, user: &User, name: &str, after: Option<&Id>) -> AppResult<UserGroup> {
+    async fn add(&self, user: &User, name: &str, after: Option<&Id>) -> AppResult<UserGroup> {
         if let Some(_) = self
             .groups_repo
             .find_by_creator_id_and_name(&user.id, name)
@@ -58,35 +62,77 @@ impl GroupsServiceIf for GroupsService {
             })
             .await;
 
-        let order_of_new_group = match after {
-            Some(group_id) => match self
-                .groups_ordering_repo
-                .find_by_user_id_and_group_id(&user.id, group_id)
-                .await
-            {
-                Some(group) => group.order + 1,
+        let mut ordering: Vec<InsertGroupOrder> = self
+            .groups_ordering_repo
+            .get_by_user_id(&user.id)
+            .await
+            .iter()
+            .enumerate()
+            .map(|(i, o)| InsertGroupOrder {
+                user_id: o.user_id.clone(),
+                group_id: o.group_id.clone(),
+                order: i as i32,
+            })
+            .collect();
+
+        let new_group_position = match after {
+            None => 0,
+            Some(id) => match ordering.iter().position(|o| &o.group_id == id) {
+                Some(pos) => pos + 1,
                 None => 0,
             },
-            None => 0,
         };
 
-        self.groups_ordering_repo
-            .increment_orders_by_user_id(&user.id, order_of_new_group)
-            .await;
+        ordering.insert(
+            new_group_position,
+            InsertGroupOrder {
+                user_id: user.id.clone(),
+                group_id: group_entity.id.clone(),
+                order: new_group_position as i32,
+            },
+        );
 
-        let new_group_id = self
-            .groups_ordering_repo
-            .insert(InsertGroupOrder {
-                user_id: (&user.id).clone(),
-                group_id: group_entity.id,
-                order: order_of_new_group,
-            })
-            .await;
+        self.groups_ordering_repo.delete_by_user_id(&user.id).await;
+        self.groups_ordering_repo.insert(ordering).await;
 
         Ok(UserGroup {
-            id: new_group_id,
-            name: name.to_string(),
-            order: order_of_new_group,
+            id: group_entity.id,
+            name: group_entity.name,
+            order: new_group_position as i32,
+        })
+    }
+
+    async fn list(&self, user: &User, paging: &Paging) -> AppResult<PagedResponse<UserGroup>> {
+        if paging.limit > PAGING_MAX_LIMIT {
+            return Err(AppError::validation(&format!(
+                "Paging limit can not be more then {}",
+                PAGING_MAX_LIMIT
+            )));
+        }
+
+        let groups_ordering = self
+            .groups_ordering_repo
+            .get_paged_by_user_id(&user.id, paging.offset, paging.limit)
+            .await;
+
+        let groups_ids: Vec<&Id> = groups_ordering.iter().map(|g| &g.group_id).collect();
+        let groups = self.groups_repo.find_by_ids(groups_ids).await;
+
+        let mut res: Vec<UserGroup> = vec![];
+        for order in groups_ordering {
+            if let Some(group) = groups.iter().find(|g| g.id == order.group_id) {
+                res.push(UserGroup {
+                    id: group.id.clone(),
+                    name: group.name.clone(),
+                    order: order.order,
+                })
+            }
+        }
+
+        Ok(PagedResponse {
+            objects: res,
+            offset: paging.offset,
+            limit: paging.limit,
         })
     }
 }

@@ -1,6 +1,6 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::db::{find_one_by, find_one_by_id, insert_many_into, insert_one_into};
+use crate::repos::db::{delete_by, find_one_by, find_one_by_id, insert_many_into, insert_one_into};
 use crate::repos::Id;
 use crate::utils::{deserialize_bson, AppResult, IntoAppErr, LogErrWith, OkOrMongoRecordId, Refs};
 
@@ -11,7 +11,7 @@ use bson::oid::ObjectId;
 use bson::{Bson, Document};
 use juniper::futures::StreamExt;
 use juniper::GraphQLObject;
-use mongodb::options::UpdateOptions;
+use mongodb::options::{FindOptions, UpdateOptions};
 use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
@@ -20,14 +20,14 @@ use std::sync::Arc;
 
 pub const COLLECTION: &str = "groups_ordering";
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct InsertGroupOrder {
     pub user_id: Id,
     pub group_id: Id,
     pub order: i32,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct GroupOrder {
     #[serde(rename = "_id")]
     pub id: Id,
@@ -38,10 +38,10 @@ pub struct GroupOrder {
 
 #[async_trait]
 pub trait GroupsOrderingRepoIf: Interface {
-    async fn insert(&self, order: InsertGroupOrder) -> Id;
-    async fn find_by_user_id_and_group_id(&self, user_id: &Id, group_id: &Id)
-        -> Option<GroupOrder>;
-    async fn increment_orders_by_user_id(&self, user_id: &Id, start_from_order: i32);
+    async fn insert(&self, ordering: Vec<InsertGroupOrder>);
+    async fn get_by_user_id(&self, user_id: &Id) -> Vec<GroupOrder>;
+    async fn get_paged_by_user_id(&self, user_id: &Id, offset: i32, limit: i32) -> Vec<GroupOrder>;
+    async fn delete_by_user_id(&self, user_id: &Id);
 }
 
 #[shaku(interface = GroupsOrderingRepoIf)]
@@ -57,40 +57,38 @@ pub struct GroupsOrderingRepo {
 
 #[async_trait]
 impl GroupsOrderingRepoIf for GroupsOrderingRepo {
-    async fn insert(&self, order: InsertGroupOrder) -> Id {
-        insert_one_into(&self.db.get(), COLLECTION, &order, self.logger()).await
+    async fn insert(&self, ordering: Vec<InsertGroupOrder>) {
+        insert_many_into(&self.db.get(), COLLECTION, ordering.refs(), self.logger()).await;
     }
 
-    async fn find_by_user_id_and_group_id(
-        &self,
-        user_id: &Id,
-        group_id: &Id,
-    ) -> Option<GroupOrder> {
+    async fn get_by_user_id(&self, user_id: &Id) -> Vec<GroupOrder> {
         let user_id: ObjectId = user_id.clone().into();
-        let group_id: ObjectId = group_id.clone().into();
-        find_one_by(
+
+        find_many_by(
             &self.db.get(),
             COLLECTION,
-            doc! { "user_id": user_id, "group_id": group_id },
+            doc! {"user_id": user_id},
             self.logger(),
+            None,
         )
         .await
     }
 
-    async fn increment_orders_by_user_id(&self, user_id: &Id, start_from_order: i32) {
+    async fn get_paged_by_user_id(&self, user_id: &Id, offset: i32, limit: i32) -> Vec<GroupOrder> {
         let user_id: ObjectId = user_id.clone().into();
 
-        let condition = doc! {
-            "$and": [
-                { "order": { "$gte": start_from_order } },
-                { "user_id": user_id }
-            ]
-        };
+        find_many_by(
+            &self.db.get(),
+            COLLECTION,
+            doc! {"user_id": user_id},
+            self.logger(),
+            Some(FindOptions::builder().skip(offset as i64).limit(limit as i64).build()),
+        )
+        .await
+    }
 
-        self.db
-            .get()
-            .collection(COLLECTION)
-            .update_many(condition, doc! { "$inc": { "order": 1 } }, None)
-            .await;
+    async fn delete_by_user_id(&self, user_id: &Id) {
+        let user_id: ObjectId = user_id.clone().into();
+        delete_by(&self.db.get(), COLLECTION, doc! {"user_id": user_id}).await;
     }
 }

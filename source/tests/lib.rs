@@ -12,12 +12,12 @@ use motor_back::config::Config;
 use motor_back::container::Container;
 use motor_back::db::DBIf;
 use motor_back::init::init_app;
+use motor_back::repos::users::{User, UsersRepoIf};
 use motor_back::services::auth::AuthServiceIf;
 use motor_back::utils::AppResult;
 use shaku::HasComponent;
 use slog::Level;
 use std::sync::Arc;
-use motor_back::repos::users::{UsersRepoIf, User};
 
 const DEFAULT_USER_NAME: &str = "Ivan";
 const DEFAULT_PASSWORD: &str = "123123";
@@ -66,13 +66,17 @@ pub async fn setup() -> Container {
     init_app(&config).await
 }
 
-pub async fn setup_with_user(login: String, password: String) -> (Container, User) {
+pub async fn setup_with_user(login: String, password: String, drop_db: bool) -> (Container, User) {
     let container: Container = setup().await;
 
     let db: &dyn DBIf = container.resolve_ref();
+    let db = db.get();
+
+    if drop_db {
+        db.drop(None).await;
+    }
 
     let user = db
-        .get()
         .collection("users")
         .find_one(Some(doc! {"username": login.clone()}), None)
         .await
@@ -80,8 +84,7 @@ pub async fn setup_with_user(login: String, password: String) -> (Container, Use
 
     match user {
         Some(_) => {
-            db.get()
-                .collection("users")
+            db.collection("users")
                 .delete_one(doc! {"username": login.clone()}, None)
                 .await;
         }
@@ -98,9 +101,30 @@ pub async fn setup_with_user(login: String, password: String) -> (Container, Use
 }
 
 pub async fn setup_with_default_user() -> (Container, User) {
-    setup_with_user(DEFAULT_USER_NAME.to_string(), DEFAULT_PASSWORD.to_string()).await
+    setup_with_user(
+        DEFAULT_USER_NAME.to_string(),
+        DEFAULT_PASSWORD.to_string(),
+        false,
+    )
+    .await
+}
+
+pub async fn drop_and_setup_with_default_user() -> (Container, User) {
+    setup_with_user(
+        DEFAULT_USER_NAME.to_string(),
+        DEFAULT_PASSWORD.to_string(),
+        true,
+    )
+    .await
 }
 
 pub async fn trunc_collection(db: &Database, collection: &str) -> () {
-    db.collection(collection).delete_many(doc! {}, None).await.unwrap();
+    db.collection(collection)
+        .delete_many(doc! {}, None)
+        .await
+        .unwrap();
+}
+
+pub async fn drop_db(db: &Database) -> () {
+    db.drop(None).await;
 }
