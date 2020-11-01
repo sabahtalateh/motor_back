@@ -12,9 +12,11 @@ pub struct Paging {
     pub limit: i32,
 }
 
+#[derive(Debug)]
 pub struct PagedResponse<T>
 {
-    pub objects: Vec<T>,
+    pub total: i32,
     pub offset: i32,
     pub limit: i32,
+    pub objects: Vec<T>,
 }

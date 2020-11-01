@@ -1,6 +1,6 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::db::{find_one_by, find_one_by_id, insert_many_into, insert_one_into};
+use crate::repos::db::{find_one_by, find_one_by_id, insert_many_into, insert_one_into, set_by_id};
 use crate::repos::Id;
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId, Refs};
 
@@ -22,6 +22,7 @@ pub const COLLECTION: &str = "groups";
 pub struct InsertGroup {
     pub creator_id: Id,
     pub name: String,
+    pub removed: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,22 +31,16 @@ pub struct Group {
     pub id: Id,
     pub creator_id: Id,
     pub name: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct OrderedGroup {
-    // #[serde(rename = "_id")]
-    // pub id: Id,
-    // pub creator_id: Id,
-    // pub name: String,
-    pub order: i32,
+    pub removed: bool,
 }
 
 #[async_trait]
 pub trait GroupsRepoIf: Interface {
+    async fn find(&self, id: &Id) -> Option<Group>;
     async fn find_by_ids(&self, ids: Vec<&Id>) -> Vec<Group>;
     async fn find_by_creator_id_and_name(&self, creator_id: &Id, name: &str) -> Option<Group>;
     async fn insert(&self, group: InsertGroup) -> Group;
+    async fn mark_removed(&self, group_id: &Id) -> bool;
 }
 
 #[shaku(interface = GroupsRepoIf)]
@@ -61,6 +56,10 @@ pub struct GroupsRepo {
 
 #[async_trait]
 impl GroupsRepoIf for GroupsRepo {
+    async fn find(&self, id: &Id) -> Option<Group> {
+        find_one_by_id(&self.db.get(), COLLECTION, id, self.logger()).await
+    }
+
     async fn find_by_ids(&self, ids: Vec<&Id>) -> Vec<Group> {
         find_many_by_ids(&self.db.get(), COLLECTION, ids, self.logger()).await
     }
@@ -77,13 +76,22 @@ impl GroupsRepoIf for GroupsRepo {
     }
 
     async fn insert(&self, group: InsertGroup) -> Group {
-        println!("INSERT!!");
-
         let id = insert_one_into(&self.db.get(), COLLECTION, &group, self.logger()).await;
         Group {
             id,
             creator_id: group.creator_id,
             name: group.name,
+            removed: false,
         }
+    }
+
+    async fn mark_removed(&self, group_id: &Id) -> bool {
+        set_by_id(
+            &self.db.get(),
+            COLLECTION,
+            &group_id,
+            doc! { "removed": true },
+        )
+        .await
     }
 }

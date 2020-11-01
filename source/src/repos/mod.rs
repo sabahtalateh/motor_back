@@ -23,9 +23,18 @@ use serde::{Deserialize, Deserializer, Serialize};
 use slog::Logger;
 use std::cmp::Ordering;
 use std::fs::read_to_string;
+use std::fmt::Display;
+use serde::export::Formatter;
+use std::fmt;
 
 #[derive(Clone, Debug, GraphQLScalarValue, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id(pub String);
+
+impl Display for Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Id({})", self.0)
+    }
+}
 
 impl Id {
     pub fn from_str(str: &str) -> Id {

@@ -13,6 +13,12 @@ pub struct UserGroup {
     pub order: i32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, GraphQLObject)]
+pub struct RemovedGroup {
+    pub id: Id,
+    pub name: String,
+}
+
 #[juniper::graphql_object(name = "PagedUserGroups")]
 impl PagedResponse<UserGroup> {
     pub fn objects(&self) -> &Vec<UserGroup> {

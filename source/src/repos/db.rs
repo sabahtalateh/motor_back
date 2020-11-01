@@ -178,18 +178,6 @@ pub(crate) async fn set_by_id(db: &Database, collection: &str, id: &Id, set: Doc
     update_result.modified_count > 0
 }
 
-pub(crate) async fn inc_version(db: &Database, collection: &str, id: &Id) -> bool {
-    let id: ObjectId = id.clone().into();
-
-    let update_result = db
-        .collection(collection)
-        .update_many(doc! { "_id": id }, doc! { "$inc": { "version": 1 } }, None)
-        .await
-        .unwrap();
-
-    update_result.modified_count > 0
-}
-
 pub(crate) async fn delete_by_id(db: &Database, collection: &str, id: &Id) -> bool {
     let id: ObjectId = id.clone().into();
 
