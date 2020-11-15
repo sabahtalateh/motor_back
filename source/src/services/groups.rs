@@ -12,8 +12,7 @@ use crate::logger::AppLoggerIf;
 use crate::repos::groups::{GroupsRepoIf, InsertGroup};
 use crate::repos::groups_ordering::{GroupsOrderingRepoIf, InsertGroupOrder};
 use crate::repos::Id;
-use crate::repos::tokens::TokensRepoIf;
-use crate::repos::users::{User, UsersRepoIf};
+use crate::repos::users::User;
 use crate::services::{PagedResponse, Paging};
 use crate::utils::AppResult;
 

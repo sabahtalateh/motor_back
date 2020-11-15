@@ -1,7 +1,5 @@
 use async_graphql::{Context, Object};
 
-use crate::config::ConfigIf;
-
 pub struct Mutation;
 
 #[Object]

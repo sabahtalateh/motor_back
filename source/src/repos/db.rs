@@ -1,6 +1,6 @@
 use bson::Document;
 use bson::oid::ObjectId;
-use futures::{FutureExt, StreamExt};
+use futures::StreamExt;
 use mongodb::Database;
 use mongodb::options::FindOptions;
 use serde::de::DeserializeOwned;

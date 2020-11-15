@@ -1,4 +1,3 @@
-use actix_web::dev::Service;
 use async_graphql::*;
 use async_graphql::connection::*;
 use async_graphql::Result;
