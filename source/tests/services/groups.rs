@@ -1,21 +1,15 @@
-use crate::{drop_and_setup_with_random_user, drop_db, setup_with_random_user, trunc_collection};
-use bson::oid::ObjectId;
+use shaku::HasComponent;
+
 use motor_back::container::Container;
 use motor_back::db::DBIf;
 use motor_back::errors::AppError;
 use motor_back::handlers::groups::UserGroup;
-use motor_back::handlers::stack::{
-    NewBlock, NewMark, NewStackItem, StackItemChangeSet, UpdateBlock,
-};
-use motor_back::logger::AppLoggerIf;
-use motor_back::repos::db as ddbb;
-use motor_back::repos::marks::InsertMark;
-use motor_back::repos::users::User;
 use motor_back::repos::Id;
-use motor_back::services::groups::{GroupsServiceIf, PAGING_MAX_LIMIT};
-use motor_back::services::stack::{StackItem, StackService, StackServiceIf};
+use motor_back::repos::users::User;
 use motor_back::services::{PagedResponse, Paging};
-use shaku::HasComponent;
+use motor_back::services::groups::{GroupsServiceIf, PAGING_MAX_LIMIT};
+
+use crate::drop_and_setup_with_random_user;
 
 #[actix_rt::test]
 async fn can_not_get_groups_if_pagination_limit_too_big() {
@@ -207,15 +201,14 @@ async fn can_not_remove_twice() {
 
     assert_eq!(removed_group.name, "200");
 
-    let remove_result = groups_service
-        .remove(&user, &inserted_group_200.id)
-        .await;
+    let remove_result = groups_service.remove(&user, &inserted_group_200.id).await;
 
     assert_eq!(
         remove_result,
-        Err(AppError::validation(
-            &format!("Group `{}` you are trying to remove not exists", inserted_group_200.id)
-        ))
+        Err(AppError::validation(&format!(
+            "Group `{}` you are trying to remove not exists",
+            inserted_group_200.id
+        )))
     );
 }
 
@@ -266,7 +259,10 @@ async fn check_groups_ordering_recounted_after_insertion_and_deletion() {
     assert_eq!(paged_groups.objects.get(3).unwrap().name, "200");
 
     // Now remove a group and assert ordering recounted
-    let removed_group = groups_service.remove(&user, &inserted_group_125.id).await.unwrap();
+    let removed_group = groups_service
+        .remove(&user, &inserted_group_125.id)
+        .await
+        .unwrap();
     assert_eq!(removed_group.name, "125");
 
     let paged_groups = groups_service
@@ -295,7 +291,10 @@ async fn check_groups_ordering_recounted_after_insertion_and_deletion() {
     assert_eq!(paged_groups.objects.get(2).unwrap().name, "200");
 
     // Now remove a group and assert ordering recounted
-    let removed_group = groups_service.remove(&user, &inserted_group_100.id).await.unwrap();
+    let removed_group = groups_service
+        .remove(&user, &inserted_group_100.id)
+        .await
+        .unwrap();
     assert_eq!(removed_group.name, "100");
 
     let paged_groups = groups_service

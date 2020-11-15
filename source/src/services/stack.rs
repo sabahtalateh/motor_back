@@ -1,27 +1,24 @@
-pub mod diff;
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use shaku::{Component, Interface};
+use slog::Logger;
+
+use proc_macro::HasLogger;
 
 use crate::errors::AppError;
-use crate::handlers::stack::{ChangeMark, NewStackItem, StackItemChangeSet, UpdateBlock};
+use crate::handlers::stack::{NewStackItem, StackItemChangeSet};
 use crate::logger::AppLoggerIf;
 use crate::repos::blocks::BlocksRepoIf;
-use crate::repos::blocks::{Block as BlockEntity, InsertBlock};
-use crate::repos::db::find_many_by_ids;
-use crate::repos::marks::{InsertMark, Mark as MarkEntity, MarksRepoIf};
+use crate::repos::blocks::InsertBlock;
+use crate::repos::groups::GroupsRepoIf;
+use crate::repos::groups_ordering::GroupsOrderingRepoIf;
+use crate::repos::Id;
+use crate::repos::marks::{InsertMark, MarksRepoIf};
 use crate::repos::stack::{NewStackItem as NewStackItemEntity, StackRepoIf};
 use crate::repos::stack_history::{InsertHistoryBlock, InsertHistoryMark, StackHistoryRepoIf};
 use crate::repos::users::User;
-use crate::repos::Id;
-use crate::utils::{AppResult, OkOrNotFound, Refs};
-use async_trait::async_trait;
-// use juniper::{GraphQLInputObject, GraphQLObject};
-use proc_macro::HasLogger;
-use shaku::{Component, Interface};
-use slog::Logger;
-use std::collections::{HashMap, HashSet};
-use std::iter::Map;
-use std::sync::Arc;
-use crate::repos::groups::GroupsRepoIf;
-use crate::repos::groups_ordering::GroupsOrderingRepoIf;
+use crate::utils::{AppResult, Refs};
 
 #[derive(Debug, Clone)]
 pub struct StackItem {
@@ -168,10 +165,7 @@ impl StackService {
         let marks_ids: Vec<Id> = stack_item_entity.marks_ids;
 
         let blocks = self.blocks_repo.find_by_ids(blocks_ids.refs()).await;
-        let marks = self
-            .marks_repo
-            .find_by_ids(marks_ids.refs())
-            .await;
+        let marks = self.marks_repo.find_by_ids(marks_ids.refs()).await;
 
         let mut stack_item_blocks = vec![];
         for block_id in blocks_ids {
@@ -209,7 +203,7 @@ impl StackServiceIf for StackService {
     async fn add_to_my_stack(
         &self,
         user: User,
-        mut new_stack_item: NewStackItem,
+        new_stack_item: NewStackItem,
     ) -> AppResult<StackItem> {
         if new_stack_item.blocks.len() == 0 {
             return Err(AppError::validation("Can not add empty stack item"));
@@ -316,11 +310,19 @@ impl StackServiceIf for StackService {
         user: User,
         changes: StackItemChangeSet,
     ) -> AppResult<StackItem> {
-        let updated_contains_removed =  changes.updated.iter().any(|u| changes.removed.iter().any(|r| &u.id == r));
-        let removed_contains_updated =  changes.removed.iter().any(|r| changes.updated.iter().any(|u| &u.id == r));
+        let updated_contains_removed = changes
+            .updated
+            .iter()
+            .any(|u| changes.removed.iter().any(|r| &u.id == r));
+        let removed_contains_updated = changes
+            .removed
+            .iter()
+            .any(|r| changes.updated.iter().any(|u| &u.id == r));
 
         if updated_contains_removed || removed_contains_updated {
-            return Err(AppError::validation("updated and removed changes intersects"));
+            return Err(AppError::validation(
+                "updated and removed changes intersects",
+            ));
         }
 
         let old_stack_item = self
@@ -371,8 +373,10 @@ impl StackServiceIf for StackService {
             .collect();
 
         futures::join!(
-            self.stack_history_repo.insert_many(removed_history_blocks.refs()),
-            self.stack_history_repo.insert_many(updated_history_blocks.refs()),
+            self.stack_history_repo
+                .insert_many(removed_history_blocks.refs()),
+            self.stack_history_repo
+                .insert_many(updated_history_blocks.refs()),
         );
 
         // потом дропнуть удалённое

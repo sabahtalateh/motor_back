@@ -1,22 +1,20 @@
-use crate::db::DBIf;
-use crate::logger::AppLoggerIf;
-use crate::repos::db::{delete_by, find_one_by, find_one_by_id, insert_many_into, insert_one_into};
-use crate::repos::Id;
-use crate::utils::{deserialize_bson, AppResult, IntoAppErr, LogErrWith, OkOrMongoRecordId, Refs};
+use std::sync::Arc;
 
-use crate::repos::db::{find_many_by, find_many_by_ids};
-use crate::repos::groups::Group;
 use async_trait::async_trait;
 use bson::oid::ObjectId;
-use bson::{Bson, Document};
-// use juniper::futures::StreamExt;
-// use juniper::GraphQLObject;
-use mongodb::options::{FindOptions, UpdateOptions};
-use proc_macro::HasLogger;
+use mongodb::options::FindOptions;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
-use std::sync::Arc;
+
+use proc_macro::HasLogger;
+
+use crate::db::DBIf;
+use crate::logger::AppLoggerIf;
+use crate::repos::db::{delete_by, insert_many_into};
+use crate::repos::db::find_many_by;
+use crate::repos::Id;
+use crate::utils::Refs;
 
 pub const COLLECTION: &str = "groups_ordering";
 
@@ -82,7 +80,12 @@ impl GroupsOrderingRepoIf for GroupsOrderingRepo {
             COLLECTION,
             doc! {"user_id": user_id},
             self.logger(),
-            Some(FindOptions::builder().skip(offset as i64).limit(limit as i64).build()),
+            Some(
+                FindOptions::builder()
+                    .skip(offset as i64)
+                    .limit(limit as i64)
+                    .build(),
+            ),
         )
         .await
     }

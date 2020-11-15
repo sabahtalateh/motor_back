@@ -1,16 +1,18 @@
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use bson::Document;
+use serde::{Deserialize, Serialize};
+use shaku::{Component, Interface};
+use slog::Logger;
+
+use proc_macro::HasLogger;
+
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::repos::db::find_one_by_id;
 use crate::repos::Id;
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
-use async_trait::async_trait;
-use bson::oid::ObjectId;
-use bson::Document;
-use proc_macro::HasLogger;
-use serde::{Deserialize, Serialize};
-use shaku::{Component, Interface};
-use slog::Logger;
-use std::sync::Arc;
 
 pub const COLLECTION: &str = "users";
 

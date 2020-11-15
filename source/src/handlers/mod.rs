@@ -1,21 +1,22 @@
+use std::sync::Arc;
+
+use actix_web::{HttpRequest, HttpResponse, Result as ActixWebResult, web};
+use actix_web::Result;
+use actix_web_actors::ws;
+use async_graphql::http::{GraphQLPlaygroundConfig, playground_source};
+use async_graphql::Schema;
+use async_graphql_actix_web::{Request, Response, WSSubscription};
+
+use crate::container::Container;
+use crate::handlers::mutation::Mutation;
+use crate::handlers::query::Query;
+use crate::handlers::subscription::Subscription;
+
 pub mod groups;
 pub mod mutation;
 pub mod query;
 pub mod stack;
 pub mod subscription;
-
-use crate::container::Container;
-use crate::handlers::mutation::Mutation;
-use crate::handlers::query::Query;
-use actix_web::Result;
-use actix_web::{guard, web, HttpRequest, HttpResponse, Result as ActixWebResult};
-use actix_web_actors::ws;
-use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
-use async_graphql::{EmptyMutation, EmptySubscription, Schema};
-use async_graphql_actix_web::{Request, Response, WSSubscription};
-use serde::Serialize;
-use std::sync::Arc;
-use crate::handlers::subscription::Subscription;
 
 #[derive(Clone)]
 pub struct Context {

@@ -1,22 +1,12 @@
+use async_graphql::{Context, Object};
+
 use crate::config::ConfigIf;
-use crate::errors::AppError;
-use crate::handlers::groups::UserGroup;
-use crate::handlers::stack::{Block, Mark, NewStackItem, StackItem, StackItemChangeSet};
-use crate::repos::tokens::TokenPair;
-use crate::repos::Id;
-use crate::services::auth::AuthServiceIf;
-use crate::services::groups::GroupsServiceIf;
-use crate::services::stack::StackServiceIf;
-use crate::utils::{AppResult, OkOrUnauthorized};
-use chrono::Utc;
-use shaku::HasComponent;
-use async_graphql::{Object, Context};
 
 pub struct Mutation;
 
 #[Object]
 impl Mutation {
-    pub async fn api_version(&self, ctx: &Context<'_>) -> String {
+    pub async fn api_version(&self, _ctx: &Context<'_>) -> String {
         "1".to_string()
         // let config: &dyn ConfigIf = ctx.ctr.resolve_ref();
         // config.api_version()

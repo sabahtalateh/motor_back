@@ -1,22 +1,21 @@
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use shaku::{Component, Interface};
+use slog::Logger;
+
+use proc_macro::HasLogger;
+
 use crate::errors::AppError;
 use crate::handlers::groups::{RemovedGroup, UserGroup};
 use crate::logger::AppLoggerIf;
-use crate::repos::db::find_one_by_id;
 use crate::repos::groups::{GroupsRepoIf, InsertGroup};
 use crate::repos::groups_ordering::{GroupsOrderingRepoIf, InsertGroupOrder};
-use crate::repos::tokens::{TokenPair, TokensRepoIf};
-use crate::repos::users::{NewUser, User, UsersRepoIf};
 use crate::repos::Id;
+use crate::repos::tokens::TokensRepoIf;
+use crate::repos::users::{User, UsersRepoIf};
 use crate::services::{PagedResponse, Paging};
-use crate::utils::{AppResult, IntoAppErr, LogErrWith, OkOrUnauthorized};
-use async_trait::async_trait;
-use bcrypt::{hash, verify, DEFAULT_COST};
-use chrono::{DateTime, Duration, Utc};
-use proc_macro::HasLogger;
-use shaku::{Component, Interface};
-use slog::Logger;
-use std::sync::Arc;
-use uuid::Uuid;
+use crate::utils::AppResult;
 
 pub const PAGING_MAX_LIMIT: i32 = 1000;
 

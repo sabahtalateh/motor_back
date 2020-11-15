@@ -1,27 +1,24 @@
-mod services;
-
 #[macro_use]
 extern crate bson;
-
 #[macro_use]
 extern crate lazy_static;
-
 #[macro_use]
 extern crate thiserror;
 
-use chrono::{Duration, Utc};
+use chrono::Duration;
 use mongodb::Database;
+use shaku::HasComponent;
+use slog::Level;
+use uuid::Uuid;
+
 use motor_back::config::Config;
 use motor_back::container::Container;
 use motor_back::db::DBIf;
 use motor_back::init::init_app;
 use motor_back::repos::users::{User, UsersRepoIf};
 use motor_back::services::auth::AuthServiceIf;
-use motor_back::utils::AppResult;
-use shaku::HasComponent;
-use slog::Level;
-use std::sync::Arc;
-use uuid::Uuid;
+
+mod services;
 
 const DEFAULT_PASSWORD: &str = "123123";
 

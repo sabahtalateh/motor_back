@@ -1,20 +1,15 @@
-use crate::db::DBIf;
-use crate::logger::AppLoggerIf;
-use crate::repos::Id;
-use crate::utils::OkOrMongoRecordId;
-use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
-use bson::oid::ObjectId;
 use bson::Document;
+use bson::oid::ObjectId;
 use futures::{FutureExt, StreamExt};
-// use juniper::sa::_core::fmt::Debug;
-// use juniper::GraphQLScalarValue;
-use mongodb::options::{FindOneOptions, FindOptions, UpdateOptions};
 use mongodb::Database;
+use mongodb::options::FindOptions;
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::Serialize;
 use slog::Logger;
-use std::fs::read_to_string;
-use std::pin::Pin;
+
+use crate::repos::Id;
+use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
+use crate::utils::OkOrMongoRecordId;
 
 pub(crate) async fn find_one_by_id<T>(
     db: &Database,

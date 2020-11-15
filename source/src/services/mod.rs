@@ -1,10 +1,8 @@
+use async_graphql::*;
+
 pub mod auth;
 pub mod groups;
 pub mod stack;
-
-use serde::Serialize;
-use crate::handlers::groups::UserGroup;
-use async_graphql::*;
 
 #[derive(InputObject)]
 pub struct Paging {

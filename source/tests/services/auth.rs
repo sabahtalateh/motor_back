@@ -1,11 +1,13 @@
-use crate::{trunc_collection, DEFAULT_CONFIG};
+use chrono::{Duration, Utc};
+use shaku::HasComponent;
+
 use motor_back::container::Container;
 use motor_back::db::DBIf;
 use motor_back::errors::AppError;
 use motor_back::init::init_app;
 use motor_back::services::auth::AuthServiceIf;
-use shaku::HasComponent;
-use chrono::{Utc, Duration};
+
+use crate::{DEFAULT_CONFIG, trunc_collection};
 
 // #[actix_rt::test]
 // async fn rrr() -> () {
@@ -119,7 +121,7 @@ async fn can_login_with_ok_creds() -> () {
 
 #[actix_rt::test]
 async fn refresh_fails_with_incorrect_token() -> () {
-    let mut config = (&*DEFAULT_CONFIG).clone();
+    let config = (&*DEFAULT_CONFIG).clone();
     let ctr: Container = init_app(&config).await;
     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
 
@@ -137,7 +139,7 @@ async fn refresh_fails_with_incorrect_token() -> () {
 
 #[actix_rt::test]
 async fn refresh_success_with_correct_token() -> () {
-    let mut config = (&*DEFAULT_CONFIG).clone();
+    let config = (&*DEFAULT_CONFIG).clone();
     let ctr: Container = init_app(&config).await;
     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
 
@@ -200,7 +202,7 @@ async fn validation_failed_for_incorrect_access() -> () {
 
 #[actix_rt::test]
 async fn validation_passed_for_correct_access() -> () {
-    let mut config = (&*DEFAULT_CONFIG).clone();
+    let config = (&*DEFAULT_CONFIG).clone();
     let ctr: Container = init_app(&config).await;
 
     let db: &dyn DBIf = ctr.resolve_ref();

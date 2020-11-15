@@ -1,20 +1,16 @@
-use crate::config::ConfigIf;
-use crate::container::Container;
-use crate::handlers::groups::UserGroup;
-use crate::handlers::stack::{Block, Mark, StackItem};
-use crate::services::auth::AuthServiceIf;
-use crate::services::groups::GroupsServiceIf;
-use crate::services::stack::StackServiceIf;
-use crate::services::{PagedResponse, Paging};
-use crate::utils::{AppResult, ExtendType};
 use actix_web::dev::Service;
+use async_graphql::*;
 use async_graphql::connection::*;
 use async_graphql::Result;
-use async_graphql::*;
 use chrono::Utc;
-use serde_json::json;
 use shaku::HasComponent;
-use std::num::ParseIntError;
+
+use crate::config::ConfigIf;
+use crate::container::Container;
+use crate::handlers::stack::StackItem;
+use crate::services::auth::AuthServiceIf;
+use crate::services::stack::StackServiceIf;
+use crate::utils::ExtendType;
 
 #[derive(SimpleObject)]
 struct Diff {
@@ -74,7 +70,7 @@ impl Query {
 
     async fn numbers(
         &self,
-        ctx: &Context<'_>,
+        _ctx: &Context<'_>,
         after: Option<String>,
         before: Option<String>,
         first: Option<i32>,

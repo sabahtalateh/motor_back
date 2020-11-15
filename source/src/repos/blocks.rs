@@ -1,23 +1,18 @@
-use crate::db::DBIf;
-use crate::logger::AppLoggerIf;
-use crate::repos::db::{
-    delete_by_id, find_many_by_ids, find_one_by_id, insert_one_into, link_external_ids, set_by_id,
-};
-use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId, ToDocsVec};
+use std::sync::Arc;
 
-use crate::repos::Id;
 use async_trait::async_trait;
-use bson::oid::ObjectId;
-use bson::{Bson, Document};
-// use juniper::futures::StreamExt;
-// use juniper::GraphQLObject;
-use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
-use std::pin::Pin;
-use std::sync::Arc;
-use crate::handlers::stack::NewBlock;
+
+use proc_macro::HasLogger;
+
+use crate::db::DBIf;
+use crate::logger::AppLoggerIf;
+use crate::repos::db::{
+    find_many_by_ids, find_one_by_id, insert_one_into, link_external_ids, set_by_id,
+};
+use crate::repos::Id;
 
 pub const COLLECTION: &str = "blocks";
 
@@ -88,7 +83,7 @@ impl BlocksRepoIf for BlocksRepo {
         set_by_id(&self.db.get(), COLLECTION, id, doc! {"removed": true}).await
     }
 
-    async fn update(&self, old: &Block, new_text: &str) -> (Block, Block) {
+    async fn update(&self, _old: &Block, _new_text: &str) -> (Block, Block) {
         unimplemented!()
         // let old = old.clone();
         //
@@ -120,7 +115,14 @@ impl BlocksRepoIf for BlocksRepo {
     }
 
     async fn link_marks(&self, block: &Block, marks_ids: &Vec<Id>) -> Block {
-        link_external_ids(&self.db.get(), COLLECTION, &block.id, "marks_ids", marks_ids).await;
+        link_external_ids(
+            &self.db.get(),
+            COLLECTION,
+            &block.id,
+            "marks_ids",
+            marks_ids,
+        )
+        .await;
 
         find_one_by_id(&self.db.get(), COLLECTION, &block.id, self.logger())
             .await

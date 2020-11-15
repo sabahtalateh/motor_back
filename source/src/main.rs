@@ -1,16 +1,17 @@
+use std::io;
+
 use actix_cors::Cors;
-use actix_web::{guard, http::header, http::Method, middleware, web, App, HttpServer};
-use async_graphql::{EmptyMutation, EmptySubscription, Schema};
+use actix_web::{App, guard, http::header, http::Method, HttpServer, middleware, web};
+use async_graphql::Schema;
+use url::Url;
+
 use motor_back::config::Config;
 use motor_back::container::Container;
-use motor_back::handlers::mutation::Mutation;
 use motor_back::handlers::{
-    health, graphql, index_playground, graphql_subscriptions, query::Query, subscription::Subscription,
+    graphql, graphql_subscriptions, health, index_playground, query::Query, subscription::Subscription,
 };
+use motor_back::handlers::mutation::Mutation;
 use motor_back::init::init_app;
-use std::io;
-use std::sync::Arc;
-use url::Url;
 
 #[actix_rt::main]
 async fn main() -> Result<(), io::Error> {

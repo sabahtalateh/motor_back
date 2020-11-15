@@ -1,5 +1,5 @@
-use crate::{setup_with_random_user, trunc_collection};
-use bson::oid::ObjectId;
+use shaku::HasComponent;
+
 use motor_back::container::Container;
 use motor_back::db::DBIf;
 use motor_back::errors::AppError;
@@ -7,12 +7,10 @@ use motor_back::handlers::stack::{
     NewBlock, NewMark, NewStackItem, StackItemChangeSet, UpdateBlock,
 };
 use motor_back::logger::AppLoggerIf;
-use motor_back::repos::db as ddbb;
-use motor_back::repos::marks::InsertMark;
 use motor_back::repos::users::User;
-use motor_back::repos::Id;
-use motor_back::services::stack::{StackItem, StackService, StackServiceIf};
-use shaku::HasComponent;
+use motor_back::services::stack::StackServiceIf;
+
+use crate::{setup_with_random_user, trunc_collection};
 
 #[actix_rt::test]
 async fn can_not_add_emtpy_item() {
@@ -52,7 +50,7 @@ async fn item_with_empty_block_added() {
 async fn error_if_orders_duplicated() {
     let (ctr, user): (Container, User) = setup_with_random_user().await;
     let stack: &dyn StackServiceIf = ctr.resolve_ref();
-    let result = stack
+    let _result = stack
         .add_to_my_stack(
             user,
             NewStackItem {
@@ -195,7 +193,12 @@ async fn error_id_deleted_and_updated_ids_intersects() {
         )
         .await;
 
-    assert_eq!(result.map(|_|()), Err(AppError::validation("updated and removed changes intersects")));
+    assert_eq!(
+        result.map(|_| ()),
+        Err(AppError::validation(
+            "updated and removed changes intersects"
+        ))
+    );
 }
 
 #[actix_rt::test]
@@ -288,11 +291,11 @@ async fn upd() {
 
 #[actix_rt::test]
 async fn jj() {
-    let (ctr, user): (Container, User) = setup_with_random_user().await;
-    let stack: &dyn StackServiceIf = ctr.resolve_ref();
-    let logger: &dyn AppLoggerIf = ctr.resolve_ref();
+    let (ctr, _user): (Container, User) = setup_with_random_user().await;
+    let _stack: &dyn StackServiceIf = ctr.resolve_ref();
+    let _logger: &dyn AppLoggerIf = ctr.resolve_ref();
 
-    let db: &dyn DBIf = ctr.resolve_ref();
+    let _db: &dyn DBIf = ctr.resolve_ref();
 
     // let bb = ddbb::insert_many_into(&db.get(), "marks", &vec![InsertMark {
     //     block_id: ObjectId::new().into(),

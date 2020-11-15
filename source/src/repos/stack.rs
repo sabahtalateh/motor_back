@@ -1,17 +1,20 @@
-use crate::db::DBIf;
-use crate::logger::AppLoggerIf;
-use crate::repos::db::{find_one_by_id, insert_one_into, link_external_ids};
-use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId};
-use crate::repos::Id;
+use std::sync::Arc;
+
 use async_trait::async_trait;
-use bson::oid::ObjectId;
 use bson::Document;
-use proc_macro::HasLogger;
+use bson::oid::ObjectId;
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
-use std::sync::Arc;
-use futures::StreamExt;
+
+use proc_macro::HasLogger;
+
+use crate::db::DBIf;
+use crate::logger::AppLoggerIf;
+use crate::repos::db::{find_one_by_id, insert_one_into, link_external_ids};
+use crate::repos::Id;
+use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
 
 pub const COLLECTION: &str = "stack";
 
@@ -78,9 +81,9 @@ impl StackRepoIf for StackRepo {
     }
 
     async fn update(&self, stack_item: &StackItem) -> StackItem {
-        let id: ObjectId = stack_item.id.clone().into();
+        let _id: ObjectId = stack_item.id.clone().into();
 
-        let doc: Document = bson::to_bson(&stack_item)
+        let _doc: Document = bson::to_bson(&stack_item)
             .unwrap()
             .as_document()
             .unwrap()

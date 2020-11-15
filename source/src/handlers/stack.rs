@@ -1,9 +1,10 @@
+use async_graphql::SimpleObject;
+use serde::Serialize;
+
 use crate::repos::Id;
 use crate::services::stack::{
     Block as ServiceBlock, Mark as ServiceMark, StackItem as ServiceStackItem,
 };
-use async_graphql::SimpleObject;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, SimpleObject)]
 pub struct StackItem {
