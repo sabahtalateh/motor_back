@@ -7,6 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 pub mod blocks;
 pub mod db;
+pub mod group_sets;
 pub mod groups;
 pub mod groups_ordering;
 pub mod marks;
