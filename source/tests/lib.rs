@@ -6,6 +6,9 @@ extern crate bson;
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
+extern crate thiserror;
+
 use chrono::{Duration, Utc};
 use mongodb::Database;
 use motor_back::config::Config;
@@ -18,8 +21,8 @@ use motor_back::utils::AppResult;
 use shaku::HasComponent;
 use slog::Level;
 use std::sync::Arc;
+use uuid::Uuid;
 
-const DEFAULT_USER_NAME: &str = "Ivan";
 const DEFAULT_PASSWORD: &str = "123123";
 
 lazy_static! {
@@ -29,6 +32,7 @@ lazy_static! {
         proto: "http".to_string(),
         host: "localhost".to_string(),
         port: 8080,
+        allowed_origins: vec![],
         mongo_host: "localhost".to_string(),
         mongo_port: 27017,
         mongo_pool_size: 100,
@@ -50,6 +54,7 @@ pub async fn setup() -> Container {
         proto: "http".to_string(),
         host: "localhost".to_string(),
         port: 8080,
+        allowed_origins: vec![],
         mongo_host: "localhost".to_string(),
         mongo_port: 27017,
         mongo_pool_size: 100,
@@ -100,18 +105,18 @@ pub async fn setup_with_user(login: String, password: String, drop_db: bool) -> 
     (container, user)
 }
 
-pub async fn setup_with_default_user() -> (Container, User) {
+pub async fn setup_with_random_user() -> (Container, User) {
     setup_with_user(
-        DEFAULT_USER_NAME.to_string(),
+        Uuid::new_v4().to_string().replace("-", ""),
         DEFAULT_PASSWORD.to_string(),
         false,
     )
     .await
 }
 
-pub async fn drop_and_setup_with_default_user() -> (Container, User) {
+pub async fn drop_and_setup_with_random_user() -> (Container, User) {
     setup_with_user(
-        DEFAULT_USER_NAME.to_string(),
+        Uuid::new_v4().to_string().replace("-", ""),
         DEFAULT_PASSWORD.to_string(),
         true,
     )

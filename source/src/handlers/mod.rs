@@ -1,54 +1,54 @@
-mod mutation;
-mod query;
-pub mod stack;
 pub mod groups;
+pub mod mutation;
+pub mod query;
+pub mod stack;
+pub mod subscription;
 
 use crate::container::Container;
 use crate::handlers::mutation::Mutation;
 use crate::handlers::query::Query;
-
-use actix_web::{web, HttpResponse};
-use juniper::http::graphiql::graphiql_source;
-use juniper::http::GraphQLRequest;
-use juniper::{EmptySubscription, GraphQLInputObject, GraphQLObject, RootNode};
+use actix_web::Result;
+use actix_web::{guard, web, HttpRequest, HttpResponse, Result as ActixWebResult};
+use actix_web_actors::ws;
+use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
+use async_graphql::{EmptyMutation, EmptySubscription, Schema};
+use async_graphql_actix_web::{Request, Response, WSSubscription};
 use serde::Serialize;
 use std::sync::Arc;
+use crate::handlers::subscription::Subscription;
 
 #[derive(Clone)]
 pub struct Context {
     ctr: Arc<Container>,
 }
 
-pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<Context>>;
+pub type Root = Schema<Query, Mutation, Subscription>;
 
-async fn health() -> HttpResponse {
-    HttpResponse::Ok().finish()
+pub async fn graphql(schema: web::Data<Root>, req: Request) -> Response {
+    schema.execute(req.into_inner()).await.into()
 }
 
-pub fn app_config(config: &mut web::ServiceConfig) {
-    let schema = Schema::new(Query {}, Mutation {}, EmptySubscription::new());
-    config
-        .data(schema)
-        .service(web::resource("/graphql").route(web::post().to(graphql)))
-        .service(web::resource("/graphiql").route(web::get().to(graphiql)))
-        .service(web::resource("/").route(web::get().to(health)));
+pub async fn graphql_subscriptions(
+    schema: web::Data<Root>,
+    req: HttpRequest,
+    payload: web::Payload,
+) -> Result<HttpResponse> {
+    ws::start_with_protocols(
+        WSSubscription::new(Schema::clone(&*schema)),
+        &["graphql-ws"],
+        &req,
+        payload,
+    )
 }
 
-async fn graphiql() -> HttpResponse {
-    let html = graphiql_source("/graphql", None);
-    HttpResponse::Ok()
+pub async fn index_playground() -> ActixWebResult<HttpResponse> {
+    Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(html)
+        .body(playground_source(
+            GraphQLPlaygroundConfig::new("/").subscription_endpoint("/"),
+        )))
 }
 
-async fn graphql(
-    data: web::Json<GraphQLRequest>,
-    schema: web::Data<Schema>,
-    container: web::Data<Arc<Container>>,
-) -> HttpResponse {
-    let context = Context {
-        ctr: container.get_ref().clone(),
-    };
-    let res = data.execute(&schema, &context).await;
-    HttpResponse::Ok().json(res)
+pub async fn health() -> HttpResponse {
+    HttpResponse::Ok().finish()
 }

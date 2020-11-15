@@ -12,23 +12,23 @@ use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::utils::OkOrMongoRecordId;
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
+use async_graphql::{Object, SimpleObject};
 use bson::oid::ObjectId;
 use bson::Document;
-use juniper::futures::{FutureExt, StreamExt};
-use juniper::sa::_core::fmt::Debug;
-use juniper::GraphQLScalarValue;
 use mongodb::Database;
 use serde::de::DeserializeOwned;
+use serde::export::Formatter;
 use serde::{Deserialize, Deserializer, Serialize};
 use slog::Logger;
 use std::cmp::Ordering;
-use std::fs::read_to_string;
-use std::fmt::Display;
-use serde::export::Formatter;
 use std::fmt;
+use std::fmt::Display;
+use std::fs::read_to_string;
+use async_graphql::scalar;
 
-#[derive(Clone, Debug, GraphQLScalarValue, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id(pub String);
+scalar!(Id);
 
 impl Display for Id {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {

@@ -5,7 +5,6 @@ use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
 use async_trait::async_trait;
 use bson::Document;
 use chrono::{DateTime, Utc};
-use juniper::GraphQLObject;
 use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
@@ -32,7 +31,7 @@ pub struct TokensRepo {
     app_logger: Arc<dyn AppLoggerIf>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, GraphQLObject)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenPair {
     pub access: String,
     pub refresh: String,
@@ -40,7 +39,7 @@ pub struct TokenPair {
     pub refresh_lifetime: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
 
-    #[graphql(skip)]
+    // #[graphql(skip)]
     pub user_id: Id,
 }
 

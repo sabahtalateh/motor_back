@@ -1,19 +1,23 @@
 #[macro_use]
-extern crate proc_macro_derive;
-
-#[macro_use]
-extern crate lazy_static;
+extern crate actix;
 
 #[macro_use]
 extern crate bson;
 
 #[macro_use]
 extern crate slog;
-extern crate slog_async;
-extern crate slog_atomic;
-extern crate slog_json;
-extern crate slog_term;
+// extern crate slog_async;
+// extern crate slog_atomic;
+// extern crate slog_json;
+// extern crate slog_term;
 
+#[macro_use]
+extern crate proc_macro_derive;
+
+#[macro_use]
+extern crate lazy_static;
+
+pub mod channels;
 pub mod config;
 pub mod container;
 pub mod db;

@@ -2,18 +2,16 @@ use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::repos::db::{find_one_by_id, insert_one_into, link_external_ids};
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith, OkOrMongoRecordId};
-
 use crate::repos::Id;
 use async_trait::async_trait;
 use bson::oid::ObjectId;
 use bson::Document;
-use juniper::futures::StreamExt;
-use juniper::GraphQLObject;
 use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
 use std::sync::Arc;
+use futures::StreamExt;
 
 pub const COLLECTION: &str = "stack";
 
@@ -62,7 +60,7 @@ pub struct NewMark {
     pub to: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, GraphQLObject)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct StackItem {
     #[serde(rename = "_id")]
     pub id: Id,

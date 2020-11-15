@@ -1,4 +1,4 @@
-use crate::{drop_and_setup_with_default_user, drop_db, setup_with_default_user, trunc_collection};
+use crate::{drop_and_setup_with_random_user, drop_db, setup_with_random_user, trunc_collection};
 use bson::oid::ObjectId;
 use motor_back::container::Container;
 use motor_back::db::DBIf;
@@ -19,7 +19,7 @@ use shaku::HasComponent;
 
 #[actix_rt::test]
 async fn can_not_get_groups_if_pagination_limit_too_big() {
-    let (ctr, user): (Container, User) = drop_and_setup_with_default_user().await;
+    let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let res = groups_service
@@ -43,7 +43,7 @@ async fn can_not_get_groups_if_pagination_limit_too_big() {
 
 #[actix_rt::test]
 async fn can_create_group_when_no_groups_created() {
-    let (ctr, user): (Container, User) = drop_and_setup_with_default_user().await;
+    let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let group = groups_service.add(&user, "some group", None).await.unwrap();
@@ -54,7 +54,7 @@ async fn can_create_group_when_no_groups_created() {
 
 #[actix_rt::test]
 async fn objects_empty_if_nothing_inserted() {
-    let (ctr, user): (Container, User) = drop_and_setup_with_default_user().await;
+    let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let response = groups_service
@@ -73,7 +73,7 @@ async fn objects_empty_if_nothing_inserted() {
 
 #[actix_rt::test]
 async fn pagination_params_correct() {
-    let (ctr, user): (Container, User) = drop_and_setup_with_default_user().await;
+    let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let response: PagedResponse<UserGroup> = groups_service
@@ -94,7 +94,7 @@ async fn pagination_params_correct() {
 
 #[actix_rt::test]
 async fn groups_presented_after_insertion() {
-    let (ctr, user): (Container, User) = drop_and_setup_with_default_user().await;
+    let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let inserted_group_0 = groups_service.add(&user, "group 0", None).await.unwrap();
@@ -121,7 +121,7 @@ async fn groups_presented_after_insertion() {
 
 #[actix_rt::test]
 async fn groups_inserted_in_correct_order() {
-    let (ctr, user): (Container, User) = drop_and_setup_with_default_user().await;
+    let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let inserted_group_0 = groups_service.add(&user, "group 0", None).await.unwrap();
@@ -169,7 +169,7 @@ async fn groups_inserted_in_correct_order() {
 
 #[actix_rt::test]
 async fn error_when_removing_non_existing_group() {
-    let (ctr, user): (Container, User) = drop_and_setup_with_default_user().await;
+    let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let inserted_group_200 = groups_service.add(&user, "200", None).await.unwrap();
@@ -195,7 +195,7 @@ async fn error_when_removing_non_existing_group() {
 
 #[actix_rt::test]
 async fn can_not_remove_twice() {
-    let (ctr, user): (Container, User) = drop_and_setup_with_default_user().await;
+    let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let inserted_group_200 = groups_service.add(&user, "200", None).await.unwrap();
@@ -221,7 +221,7 @@ async fn can_not_remove_twice() {
 
 #[actix_rt::test]
 async fn check_groups_ordering_recounted_after_insertion_and_deletion() {
-    let (ctr, user): (Container, User) = drop_and_setup_with_default_user().await;
+    let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     // Insert some groups and ensure ordering is correct

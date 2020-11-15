@@ -21,10 +21,6 @@ impl AppLoggerIf for AppLogger {
     }
 }
 
-pub trait WithLogger {
-    fn loggerrrr(&self) -> &Logger;
-}
-
 pub fn build_app_logger(config: &Config) -> Logger {
     build_json_file_logger(
         config.clear_logger_files,

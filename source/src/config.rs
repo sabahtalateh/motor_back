@@ -10,7 +10,7 @@ pub trait ConfigIf: Interface {
     fn api_version(&self) -> String;
 }
 
-#[derive(Component, Clone)]
+#[derive(Debug, Component, Clone)]
 #[shaku(interface = ConfigIf)]
 pub struct Config {
     pub app_name: String,
@@ -19,6 +19,8 @@ pub struct Config {
     pub proto: String,
     pub host: String,
     pub port: u32,
+
+    pub allowed_origins: Vec<String>,
 
     pub mongo_host: String,
     pub mongo_port: u32,
@@ -68,6 +70,13 @@ impl Config {
             port: read_var("SERVER_PORT")
                 .parse()
                 .expect("SERVER_PORT must be a valid u32"),
+
+            allowed_origins: read_var("ALLOWED_ORIGINS")
+                .parse::<String>()
+                .expect("ALLOWED_ORIGINS must be `;` separated string")
+                .split(";")
+                .map(|x| x.trim().to_owned())
+                .collect(),
 
             mongo_host: read_var("MONGO_HOST"),
             mongo_port: read_var("MONGO_PORT")

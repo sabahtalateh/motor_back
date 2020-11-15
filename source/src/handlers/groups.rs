@@ -3,37 +3,56 @@ use crate::services::stack::{
     Block as ServiceBlock, Mark as ServiceMark, StackItem as ServiceStackItem,
 };
 use crate::services::PagedResponse;
-use juniper::{GraphQLInputObject, GraphQLObject};
 use serde::{Deserialize, Serialize};
+use async_graphql::{Object, SimpleObject};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, GraphQLObject)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, SimpleObject)]
 pub struct UserGroup {
     pub id: Id,
     pub name: String,
     pub order: i32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, GraphQLObject)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RemovedGroup {
     pub id: Id,
     pub name: String,
 }
 
-#[juniper::graphql_object(name = "PagedUserGroups")]
+#[Object]
 impl PagedResponse<UserGroup> {
-    pub fn objects(&self) -> &Vec<UserGroup> {
+    pub async fn objects(&self) -> &Vec<UserGroup> {
         &self.objects
     }
 
-    pub fn offset(&self) -> i32 {
+    pub async fn offset(&self) -> i32 {
         self.offset
     }
 
-    pub fn limit(&self) -> i32 {
+    pub async fn limit(&self) -> i32 {
         self.limit
     }
 
-    pub fn total(&self) -> i32 {
+    pub async fn total(&self) -> i32 {
+        (&self.objects).len() as i32
+    }
+}
+
+#[Object]
+impl PagedResponse<i32> {
+    pub async fn objects(&self) -> &Vec<i32> {
+        &self.objects
+    }
+
+    pub async fn offset(&self) -> i32 {
+        self.offset
+    }
+
+    pub async fn limit(&self) -> i32 {
+        self.limit
+    }
+
+    pub async fn total(&self) -> i32 {
         (&self.objects).len() as i32
     }
 }

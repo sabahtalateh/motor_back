@@ -2,10 +2,10 @@ use crate::repos::Id;
 use crate::services::stack::{
     Block as ServiceBlock, Mark as ServiceMark, StackItem as ServiceStackItem,
 };
-use juniper::{GraphQLInputObject, GraphQLObject};
+use async_graphql::SimpleObject;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, GraphQLObject)]
+#[derive(Debug, Clone, SimpleObject)]
 pub struct StackItem {
     pub id: Id,
     pub blocks: Vec<Block>,
@@ -20,7 +20,7 @@ impl From<ServiceStackItem> for StackItem {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, GraphQLObject)]
+#[derive(Debug, Clone, PartialEq, Eq, SimpleObject)]
 pub struct Block {
     pub id: Id,
     pub text: String,
@@ -37,7 +37,7 @@ impl From<ServiceBlock> for Block {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, GraphQLObject)]
+#[derive(Debug, Clone, PartialEq, Eq, SimpleObject)]
 pub struct Mark {
     pub id: Id,
     pub from: i32,
@@ -54,24 +54,24 @@ impl From<ServiceMark> for Mark {
     }
 }
 
-#[derive(Debug, Clone, GraphQLInputObject)]
+#[derive(Debug, Clone)]
 pub struct NewStackItem {
     pub blocks: Vec<NewBlock>,
 }
 
-#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+#[derive(Serialize, Debug, Clone)]
 pub struct NewBlock {
     pub text: String,
     pub marks: Vec<NewMark>,
 }
 
-#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+#[derive(Serialize, Debug, Clone)]
 pub struct NewMark {
     pub from: i32,
     pub to: i32,
 }
 
-#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+#[derive(Serialize, Debug, Clone)]
 pub struct StackItemChangeSet {
     pub stack_id: Id,
     pub inserted: Option<InsertChangeSet>,
@@ -79,26 +79,26 @@ pub struct StackItemChangeSet {
     pub updated: Vec<UpdateBlock>,
 }
 
-#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+#[derive(Serialize, Debug, Clone)]
 pub struct InsertChangeSet {
     pub insert_after_id: Option<Id>,
     pub blocks: Vec<InsertBlock>,
 }
 
-#[derive(Serialize, Debug, Clone, PartialEq, Eq, GraphQLInputObject)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct InsertBlock {
     pub text: String,
     pub marks: Vec<ChangeMark>,
 }
 
-#[derive(Serialize, Debug, Clone, GraphQLInputObject)]
+#[derive(Serialize, Debug, Clone)]
 pub struct UpdateBlock {
     pub id: Id,
     pub text: String,
     pub marks: Vec<ChangeMark>,
 }
 
-#[derive(Serialize, Debug, Clone, PartialEq, Eq, GraphQLInputObject)]
+#[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct ChangeMark {
     pub id: Option<Id>,
     pub from: i32,

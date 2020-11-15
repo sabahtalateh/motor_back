@@ -7,6 +7,23 @@ use motor_back::services::auth::AuthServiceIf;
 use shaku::HasComponent;
 use chrono::{Utc, Duration};
 
+// #[actix_rt::test]
+// async fn rrr() -> () {
+//     let mut config = (&*DEFAULT_CONFIG).clone();
+//     config.pwd_min_len = 0;
+//     let ctr: Container = init_app(&config).await;
+//
+//     let db: &dyn DBIf = ctr.resolve_ref();
+//     trunc_collection(&db.get(), "users").await;
+//
+//     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+//     let reg_result = auth.register("U".to_string(), "1".to_string()).await;
+//     println!("{:#?}", reg_result);
+//
+//     let reg_result = auth.register("U".to_string(), "1".to_string()).await;
+//     println!("{:#?}", reg_result);
+// }
+
 #[actix_rt::test]
 async fn registration_failed_if_password_weak() -> () {
     let mut config = (&*DEFAULT_CONFIG).clone();

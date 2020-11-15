@@ -1,4 +1,4 @@
-use juniper::{graphql_value, FieldError, IntoFieldError};
+// use juniper::{graphql_value, FieldError, IntoFieldError};
 
 use std::fmt;
 use AppErrorType::*;
@@ -69,20 +69,14 @@ impl AppError {
     pub fn other_error(message: &str) -> AppError {
         AppError::new(message, AppErrorType::OtherError)
     }
+
+    pub fn get_type(&self) -> String {
+        self.error_type.to_string()
+    }
 }
 
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string())
-    }
-}
-
-// Ето будет написано в ответе графкуэля
-impl IntoFieldError for AppError {
-    fn into_field_error(self) -> FieldError {
-        FieldError::new(
-            self.message,
-            graphql_value!({ "type": (self.error_type.to_string()) }),
-        )
+        write!(f, "{}", self.message)
     }
 }

@@ -1,12 +1,26 @@
 use crate::errors::AppError;
 use crate::repos::Id;
+use async_graphql::Error;
 use bson::oid::ObjectId;
 use bson::Document;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use slog::Logger;
+use async_graphql::ErrorExtensions;
 
 pub type AppResult<T> = Result<T, AppError>;
+
+// impl From<AppError> for async_graphql::Error {
+//     fn from(_: AppError) -> Self {
+//         unimplemented!()
+//     }
+// }
+
+// impl <T> Into<Result<T, async_graphql::Error>> for AppResult<T> {
+//     fn into(self) -> Result<T, Error> {
+//         unimplemented!()
+//     }
+// }
 
 pub fn deserialize_bson<T>(bson: &Document) -> T
 where
@@ -59,7 +73,7 @@ impl<T> OkOrMongoRecordId<T> for Option<T> {
 /// Переделываем ошибку во внутренню ошибку
 ///
 pub trait IntoAppErr<T> {
-    fn into_app_err(self) -> Result<T, AppError>;
+    fn into_app_err(self) -> AppResult<T>;
 }
 
 impl<T, E> IntoAppErr<T> for Result<T, E> {
@@ -68,6 +82,19 @@ impl<T, E> IntoAppErr<T> for Result<T, E> {
             Ok(ok) => Ok(ok),
             Err(_) => Err(AppError::internal()),
         }
+    }
+}
+
+///
+/// Пишем тип в графкуэльную ошибку
+///
+pub trait ExtendType<T> {
+    fn extend_type(self) -> async_graphql::Result<T>;
+}
+
+impl<T> ExtendType<T> for AppResult<T> {
+    fn extend_type(self) -> async_graphql::Result<T> {
+        self.map_err(|ee| ee.extend_with(|_, e| e.set("type", ee.get_type())))
     }
 }
 
@@ -106,8 +133,7 @@ impl<T> OkOrNotFound<T> for Option<T> {
 }
 
 ///
-/// Для переделывания массива каких то штук
-///  в массив документов.
+/// Для переделывания массива каких то штук в массив документов.
 /// Штуки должны быть сериализуемые
 ///
 pub trait ToDocsVec<T> {
