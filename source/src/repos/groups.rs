@@ -10,8 +10,8 @@ use proc_macro::HasLogger;
 
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
+use crate::repos::db::{find_many_by, find_many_by_ids};
 use crate::repos::db::{find_one_by, find_one_by_id, insert_one_into, set_by_id};
-use crate::repos::db::find_many_by_ids;
 use crate::repos::Id;
 
 pub const COLLECTION: &str = "groups";
@@ -36,7 +36,7 @@ pub struct Group {
 pub trait GroupsRepoIf: Interface {
     async fn find(&self, id: &Id) -> Option<Group>;
     async fn find_by_ids(&self, ids: Vec<&Id>) -> Vec<Group>;
-    async fn find_by_creator_id_and_name(&self, creator_id: &Id, name: &str) -> Option<Group>;
+    async fn get_by_creator_id_and_name(&self, creator_id: &Id, name: &str) -> Vec<Group>;
     async fn insert(&self, group: InsertGroup) -> Group;
     async fn mark_removed(&self, group_id: &Id) -> bool;
 }
@@ -62,9 +62,9 @@ impl GroupsRepoIf for GroupsRepo {
         find_many_by_ids(&self.db.get(), COLLECTION, ids, self.logger()).await
     }
 
-    async fn find_by_creator_id_and_name(&self, creator_id: &Id, name: &str) -> Option<Group> {
+    async fn get_by_creator_id_and_name(&self, creator_id: &Id, name: &str) -> Vec<Group> {
         let creator_id: ObjectId = creator_id.clone().into();
-        find_one_by(
+        find_many_by(
             &self.db.get(),
             COLLECTION,
             doc! {"creator_id": creator_id, "name": name},

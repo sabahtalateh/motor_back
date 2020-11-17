@@ -1,6 +1,7 @@
+use std::vec::Vec;
+
 use bson::document::Document;
 use mongodb::Database;
-use std::vec::Vec;
 
 lazy_static! {
     static ref INDEX_COMMANDS: Vec<Document> = {
@@ -26,14 +27,6 @@ lazy_static! {
                 "indexes": [{
                     "key": {"refresh": 1},
                     "name": "unique_refresh_token",
-                    "unique": true
-                }]
-            },
-            doc! {
-                "createIndexes": crate::repos::groups::COLLECTION,
-                "indexes": [{
-                    "key": {"creator_id": 1, "name": 1},
-                    "name": "creator_can_not_have_groups_with_same_names",
                     "unique": true
                 }]
             },

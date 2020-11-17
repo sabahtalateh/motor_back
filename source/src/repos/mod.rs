@@ -1,12 +1,13 @@
 use std::fmt;
 use std::fmt::Display;
 
-use async_graphql::scalar;
+use async_graphql::{InputValueError, InputValueResult, scalar, Scalar, ScalarType, Value};
 use bson::oid::ObjectId;
 use serde::{Deserialize, Deserializer, Serialize};
 
 pub mod blocks;
 pub mod db;
+pub mod default_group_sets;
 pub mod group_sets;
 pub mod groups;
 pub mod groups_ordering;
@@ -18,7 +19,21 @@ pub mod users;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id(pub String);
-scalar!(Id);
+
+#[Scalar]
+impl ScalarType for Id {
+    fn parse(value: Value) -> InputValueResult<Self> {
+        if let Value::String(value) = &value {
+            Ok(Id::from_str(value))
+        } else {
+            Err(InputValueError::expected_type(value))
+        }
+    }
+
+    fn to_value(&self) -> Value {
+        Value::String(self.0.to_string())
+    }
+}
 
 impl Display for Id {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {

@@ -1,45 +1,86 @@
 use async_graphql::{Context, Object};
+use async_graphql::Result;
+use chrono::Utc;
+use shaku::HasComponent;
+
+use crate::config::ConfigIf;
+use crate::container::Container;
+use crate::handlers::groups::UserGroup;
+use crate::repos::Id;
+use crate::repos::tokens::TokenPair;
+use crate::services::auth::AuthServiceIf;
+use crate::services::groups::GroupsServiceIf;
+use crate::utils::ExtendType;
 
 pub struct Mutation;
 
 #[Object]
 impl Mutation {
-    pub async fn api_version(&self, _ctx: &Context<'_>) -> String {
-        "1".to_string()
-        // let config: &dyn ConfigIf = ctx.ctr.resolve_ref();
-        // config.api_version()
+    pub async fn api_version<'a>(&'a self, ctx: &'a Context<'_>) -> &'a str {
+        let ctr: &Container = ctx.data_unchecked::<Container>();
+        let config: &dyn ConfigIf = ctr.resolve_ref();
+
+        config.api_version()
     }
-    //
-    // pub async fn register(username: String, password: String, ctx: &Context) -> AppResult<String> {
-    //     let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();
-    //     auth.register(username, password)
-    //         .await
-    //         .map(|_| Ok("ok".to_string()))?
-    // }
-    //
-    // pub async fn login(username: String, password: String, ctx: &Context) -> AppResult<TokenPair> {
-    //     let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();
-    //     auth.login(username, password, Utc::now()).await
-    // }
-    //
-    // pub async fn refresh_token(refresh: String, ctx: &Context) -> AppResult<TokenPair> {
-    //     let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();
-    //     auth.refresh_token(&refresh, Utc::now()).await
-    // }
-    //
-    // pub async fn create_group(
-    //     access: String,
-    //     name: String,
-    //     insert_after: Option<Id>,
-    //     ctx: &Context,
-    // ) -> AppResult<UserGroup> {
-    //     let auth: &dyn AuthServiceIf = ctx.ctr.resolve_ref();
-    //     let user = auth.validate_access(&access, Utc::now()).await?;
-    //
-    //     let groups: &dyn GroupsServiceIf = ctx.ctr.resolve_ref();
-    //     groups.add(&user, &name, insert_after.as_ref()).await
-    // }
-    //
+
+    pub async fn register(
+        &self,
+        ctx: &Context<'_>,
+        username: String,
+        password: String,
+    ) -> Result<&str> {
+        let ctr: &Container = ctx.data_unchecked::<Container>();
+        let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+
+        auth.register(username, password).await.map(|_| Ok("ok"))?
+    }
+
+    pub async fn login(
+        &self,
+        ctx: &Context<'_>,
+        username: String,
+        password: String,
+    ) -> Result<TokenPair> {
+        let ctr: &Container = ctx.data_unchecked::<Container>();
+        let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+        auth.login(username, password, Utc::now())
+            .await
+            .extend_type()
+    }
+
+    pub async fn refresh_token(&self, ctx: &Context<'_>, refresh: String) -> Result<TokenPair> {
+        let ctr: &Container = ctx.data_unchecked::<Container>();
+        let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+
+        auth.refresh_token(&refresh, &Utc::now())
+            .await
+            .extend_type()
+    }
+
+    pub async fn create_group(
+        &self,
+        ctx: &Context<'_>,
+        access: String,
+        group_name: String,
+        group_set: Option<String>,
+        insert_after: Option<Id>,
+    ) -> Result<UserGroup> {
+        let ctr: &Container = ctx.data_unchecked::<Container>();
+        let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+        let user = auth.validate_access(&access, &Utc::now()).await?;
+
+        let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
+        groups
+            .create_group(
+                &user,
+                &group_name,
+                group_set.as_deref(),
+                insert_after.as_ref(),
+            )
+            .await
+            .extend_type()
+    }
+
     // pub async fn my_stack_add(
     //     access: String,
     //     stack_item: NewStackItem,

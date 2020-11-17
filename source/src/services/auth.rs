@@ -1,17 +1,20 @@
-use crate::errors::AppError;
-use crate::logger::AppLoggerIf;
-use crate::repos::tokens::{TokenPair, TokensRepoIf};
-use crate::repos::users::{NewUser, User, UsersRepoIf};
-use crate::repos::Id;
-use crate::utils::{AppResult, IntoAppErr, LogErrWith, OkOrUnauthorized};
+use std::sync::Arc;
+
 use async_trait::async_trait;
-use bcrypt::{hash, verify, DEFAULT_COST};
+use bcrypt::{DEFAULT_COST, hash, verify};
 use chrono::{DateTime, Duration, Utc};
-use proc_macro::HasLogger;
 use shaku::{Component, Interface};
 use slog::Logger;
-use std::sync::Arc;
 use uuid::Uuid;
+
+use proc_macro::HasLogger;
+
+use crate::errors::AppError;
+use crate::logger::AppLoggerIf;
+use crate::repos::Id;
+use crate::repos::tokens::{TokenPair, TokensRepoIf};
+use crate::repos::users::{NewUser, User, UsersRepoIf};
+use crate::utils::{AppResult, IntoAppErr, LogErrWith, OkOrUnauthorized};
 
 #[async_trait]
 pub trait AuthServiceIf: Interface {
@@ -22,8 +25,8 @@ pub trait AuthServiceIf: Interface {
         now: DateTime<Utc>,
     ) -> AppResult<TokenPair>;
     async fn register(&self, login: String, password: String) -> AppResult<()>;
-    async fn refresh_token(&self, refresh: &str, now: DateTime<Utc>) -> AppResult<TokenPair>;
-    async fn validate_access(&self, access: &str, now: DateTime<Utc>) -> AppResult<User>;
+    async fn refresh_token(&self, refresh: &str, now: &DateTime<Utc>) -> AppResult<TokenPair>;
+    async fn validate_access(&self, access: &str, now: &DateTime<Utc>) -> AppResult<User>;
 }
 
 #[derive(Component, HasLogger)]
@@ -46,7 +49,7 @@ pub struct AuthService {
     refresh_token_lifetime: Duration,
 
     #[shaku(no_default)]
-    pwd_min_len: u32
+    pwd_min_len: u32,
 }
 
 impl AuthService {
@@ -66,7 +69,7 @@ impl AuthServiceIf for AuthService {
     ) -> AppResult<TokenPair> {
         let user = self
             .users_repo
-            .find_by_username(username.as_str())
+            .find_by_username(&username)
             .await
             .ok_or(AppError::login_failed())?;
 
@@ -74,18 +77,19 @@ impl AuthServiceIf for AuthService {
             return Err(AppError::login_failed());
         }
 
-        let token = self.construct_token(user.id, now);
+        let token = self.construct_token(user.id, &now);
         self.tokens_repo.insert(&token).await;
 
         Ok(token)
     }
 
     async fn register(&self, login: String, password: String) -> AppResult<()> {
-        self.is_strong_password(password.as_str())?;
-        if self.username_exists(login.as_str()).await {
-            return Err(AppError::validation(
-                format!("Username `{}` already taken", login).as_str(),
-            ));
+        self.is_strong_password(&password)?;
+        if self.username_exists(&login).await {
+            return Err(AppError::validation(&format!(
+                "Username `{}` already taken",
+                login
+            )));
         }
 
         let encrypted_password = hash(password, DEFAULT_COST)
@@ -94,7 +98,7 @@ impl AuthServiceIf for AuthService {
 
         self.users_repo
             .insert(&NewUser {
-                username: login,
+                username: login.to_string(),
                 password: encrypted_password,
             })
             .await;
@@ -102,35 +106,35 @@ impl AuthServiceIf for AuthService {
         Ok(())
     }
 
-    async fn refresh_token(&self, refresh: &str, now: DateTime<Utc>) -> AppResult<TokenPair> {
+    async fn refresh_token(&self, refresh: &str, now: &DateTime<Utc>) -> AppResult<TokenPair> {
         let token = self
             .tokens_repo
             .find_by_refresh(refresh)
             .await
             .ok_or_unauthorized()?;
 
-        if token.refresh_lifetime < now {
+        if &token.refresh_lifetime < now {
             return Err(AppError::unauthorized());
         }
 
-        let token = self.construct_token(token.user_id, now);
+        let token = self.construct_token(token.user_id, &now);
         self.tokens_repo.insert(&token).await;
 
         Ok(token)
     }
 
-    async fn validate_access(&self, access: &str, now: DateTime<Utc>) -> AppResult<User> {
+    async fn validate_access(&self, access: &str, now: &DateTime<Utc>) -> AppResult<User> {
         let token = self
             .tokens_repo
             .find_by_access(access)
             .await
             .ok_or_unauthorized()?;
 
-        if token.access_lifetime < now && token.refresh_lifetime <= now {
+        if &token.access_lifetime < now && &token.refresh_lifetime <= now {
             return Err(AppError::unauthorized());
         }
 
-        if token.access_lifetime < now && token.refresh_lifetime > now {
+        if &token.access_lifetime < now && &token.refresh_lifetime > now {
             return Err(AppError::access_expire());
         }
 
@@ -141,7 +145,9 @@ impl AuthServiceIf for AuthService {
 }
 
 impl AuthService {
-    fn construct_token(&self, user_id: Id, current_time: DateTime<Utc>) -> TokenPair {
+    fn construct_token(&self, user_id: Id, current_time: &DateTime<Utc>) -> TokenPair {
+        let current_time = current_time.to_owned();
+
         let access_lifetime =
             current_time + Duration::seconds(self.access_token_lifetime.num_seconds());
         let refresh_lifetime =
@@ -167,7 +173,7 @@ impl AuthService {
                     "password length should be at least `{}` characters",
                     self.pwd_min_len
                 )
-                    .as_str(),
+                .as_str(),
             ))
         }
     }
@@ -179,7 +185,3 @@ impl AuthService {
         }
     }
 }
-
-
-
-

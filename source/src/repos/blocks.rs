@@ -42,7 +42,7 @@ pub struct InsertBlock {
 pub trait BlocksRepoIf: Interface {
     async fn insert(&self, insert_block: InsertBlock) -> Block;
 
-    async fn delete(&self, id: &Id) -> bool;
+    async fn mark_removed(&self, id: &Id) -> bool;
 
     /// returns (old_block, new_block)
     async fn update(&self, old: &Block, new_text: &str) -> (Block, Block);
@@ -79,7 +79,7 @@ impl BlocksRepoIf for BlocksRepo {
         }
     }
 
-    async fn delete(&self, id: &Id) -> bool {
+    async fn mark_removed(&self, id: &Id) -> bool {
         set_by_id(&self.db.get(), COLLECTION, id, doc! {"removed": true}).await
     }
 

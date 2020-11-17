@@ -1,15 +1,19 @@
+use std::sync::Arc;
+
+use async_graphql::SimpleObject;
+use async_trait::async_trait;
+use bson::Document;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use shaku::{Component, Interface};
+use slog::Logger;
+
+use proc_macro::HasLogger;
+
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::repos::Id;
 use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
-use async_trait::async_trait;
-use bson::Document;
-use chrono::{DateTime, Utc};
-use proc_macro::HasLogger;
-use serde::{Deserialize, Serialize};
-use shaku::{Component, Interface};
-use slog::Logger;
-use std::sync::Arc;
 
 pub const COLLECTION: &str = "tokens";
 
@@ -31,15 +35,13 @@ pub struct TokensRepo {
     app_logger: Arc<dyn AppLoggerIf>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
 pub struct TokenPair {
     pub access: String,
     pub refresh: String,
     pub access_lifetime: DateTime<Utc>,
     pub refresh_lifetime: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
-
-    // #[graphql(skip)]
     pub user_id: Id,
 }
 

@@ -106,7 +106,6 @@ impl MarksRepoIf for MarksRepo {
             COLLECTION,
             doc! { "block_id": block_id },
             self.logger(),
-            None,
         )
         .await
     }

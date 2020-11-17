@@ -1,13 +1,13 @@
-use chrono::Duration;
-use dotenv::dotenv;
-
-use shaku::{Component, Interface};
-use slog::Level;
 use std::env;
 use std::str::FromStr;
 
+use chrono::Duration;
+use dotenv::dotenv;
+use shaku::{Component, Interface};
+use slog::Level;
+
 pub trait ConfigIf: Interface {
-    fn api_version(&self) -> String;
+    fn api_version(&self) -> &str;
 }
 
 #[derive(Debug, Component, Clone)]
@@ -42,8 +42,8 @@ pub struct Config {
 }
 
 impl ConfigIf for Config {
-    fn api_version(&self) -> String {
-        self.api_version.clone()
+    fn api_version(&self) -> &str {
+        &self.api_version
     }
 }
 

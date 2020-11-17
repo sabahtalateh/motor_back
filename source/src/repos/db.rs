@@ -71,18 +71,51 @@ where
         .await
 }
 
-pub(crate) async fn find_many_by<T>(
+pub(crate) struct PaginationOptions {
+    pub offset: i64,
+    pub limit: i64,
+}
+
+pub(crate) async fn find_many_by_paged<T>(
     db: &Database,
     collection: &str,
     criteria: Document,
     logger: &Logger,
-    find_options: Option<FindOptions>,
+    pagination: PaginationOptions,
 ) -> Vec<T>
 where
     T: DeserializeOwned,
 {
     db.collection(collection)
-        .find(Some(criteria), find_options)
+        .find(
+            Some(criteria),
+            Some(
+                FindOptions::builder()
+                    .skip(pagination.offset as i64)
+                    .limit(pagination.limit as i64)
+                    .build(),
+            ),
+        )
+        .await
+        .log_err_with(logger)
+        .into_app_err()
+        .unwrap()
+        .map(|x| deserialize_bson(&x.unwrap()))
+        .collect()
+        .await
+}
+
+pub(crate) async fn find_many_by<T>(
+    db: &Database,
+    collection: &str,
+    criteria: Document,
+    logger: &Logger,
+) -> Vec<T>
+where
+    T: DeserializeOwned,
+{
+    db.collection(collection)
+        .find(Some(criteria), None)
         .await
         .log_err_with(logger)
         .into_app_err()

@@ -40,7 +40,7 @@ async fn can_create_group_when_no_groups_created() {
     let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
-    let group = groups_service.add(&user, "some group", None).await.unwrap();
+    let group = groups_service.create_group(&user, "some group", None).await.unwrap();
 
     assert_eq!("some group", &group.name);
     assert_eq!(0, group.order);
@@ -91,9 +91,9 @@ async fn groups_presented_after_insertion() {
     let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
-    let inserted_group_0 = groups_service.add(&user, "group 0", None).await.unwrap();
+    let inserted_group_0 = groups_service.create_group(&user, "group 0", None).await.unwrap();
     let inserted_group_1 = groups_service
-        .add(&user, "group 1", Some(&inserted_group_0.id))
+        .create_group(&user, "group 1", Some(&inserted_group_0.id))
         .await
         .unwrap();
 
@@ -118,13 +118,13 @@ async fn groups_inserted_in_correct_order() {
     let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
-    let inserted_group_0 = groups_service.add(&user, "group 0", None).await.unwrap();
+    let inserted_group_0 = groups_service.create_group(&user, "group 0", None).await.unwrap();
     let inserted_group_1 = groups_service
-        .add(&user, "group 1", Some(&inserted_group_0.id))
+        .create_group(&user, "group 1", Some(&inserted_group_0.id))
         .await
         .unwrap();
     let inserted_group_2 = groups_service
-        .add(&user, "group 2", Some(&inserted_group_1.id))
+        .create_group(&user, "group 2", Some(&inserted_group_1.id))
         .await
         .unwrap();
 
@@ -166,7 +166,7 @@ async fn error_when_removing_non_existing_group() {
     let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
-    let inserted_group_200 = groups_service.add(&user, "200", None).await.unwrap();
+    let inserted_group_200 = groups_service.create_group(&user, "200", None).await.unwrap();
 
     let remove_result = groups_service
         .remove(&user, &Id::from_str("no group with such id"))
@@ -192,7 +192,7 @@ async fn can_not_remove_twice() {
     let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
-    let inserted_group_200 = groups_service.add(&user, "200", None).await.unwrap();
+    let inserted_group_200 = groups_service.create_group(&user, "200", None).await.unwrap();
 
     let removed_group = groups_service
         .remove(&user, &inserted_group_200.id)
@@ -218,14 +218,14 @@ async fn check_groups_ordering_recounted_after_insertion_and_deletion() {
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     // Insert some groups and ensure ordering is correct
-    let _inserted_group_200 = groups_service.add(&user, "200", None).await.unwrap();
-    let inserted_group_100 = groups_service.add(&user, "100", None).await.unwrap();
+    let _inserted_group_200 = groups_service.create_group(&user, "200", None).await.unwrap();
+    let inserted_group_100 = groups_service.create_group(&user, "100", None).await.unwrap();
     let _inserted_group_150 = groups_service
-        .add(&user, "150", Some(&inserted_group_100.id))
+        .create_group(&user, "150", Some(&inserted_group_100.id))
         .await
         .unwrap();
     let inserted_group_125 = groups_service
-        .add(&user, "125", Some(&inserted_group_100.id))
+        .create_group(&user, "125", Some(&inserted_group_100.id))
         .await
         .unwrap();
 
