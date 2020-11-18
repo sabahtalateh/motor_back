@@ -1,19 +1,17 @@
-use std::sync::Arc;
-
-use async_trait::async_trait;
-use bcrypt::{DEFAULT_COST, hash, verify};
-use chrono::{DateTime, Duration, Utc};
-use shaku::{Component, Interface};
-use slog::Logger;
-use uuid::Uuid;
-
-use proc_macro::HasLogger;
 use crate::errors::AppError;
 use crate::logger::AppLoggerIf;
-use crate::repos::Id;
 use crate::repos::tokens::{TokenPair, TokensRepoIf};
 use crate::repos::users::{NewUser, User, UsersRepoIf};
+use crate::repos::Id;
 use crate::utils::{AppResult, IntoAppErr, LogErrWith, OkOrUnauthorized};
+use async_trait::async_trait;
+use bcrypt::{hash, verify, DEFAULT_COST};
+use chrono::{DateTime, Duration, Utc};
+use proc_macro::HasLogger;
+use shaku::{Component, Interface};
+use slog::Logger;
+use std::sync::Arc;
+use uuid::Uuid;
 
 #[async_trait]
 pub trait AuthServiceIf: Interface {
