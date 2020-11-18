@@ -8,7 +8,6 @@ use slog::Logger;
 use uuid::Uuid;
 
 use proc_macro::HasLogger;
-
 use crate::errors::AppError;
 use crate::logger::AppLoggerIf;
 use crate::repos::Id;
