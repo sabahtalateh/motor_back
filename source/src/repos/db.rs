@@ -71,12 +71,13 @@ where
         .await
 }
 
+#[derive(Debug)]
 pub(crate) struct PaginationOptions {
     pub offset: i64,
     pub limit: i64,
 }
 
-pub(crate) async fn find_many_by_paged<T>(
+pub(crate) async fn paged_find_many_by<T>(
     db: &Database,
     collection: &str,
     criteria: Document,

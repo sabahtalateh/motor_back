@@ -8,14 +8,15 @@ use proc_macro::HasLogger;
 
 use crate::errors::AppError;
 use crate::handlers::groups::{RemovedGroup, UserGroup};
+use crate::handlers::Paging;
 use crate::logger::AppLoggerIf;
 use crate::repos::default_group_sets::{DefaultGroupSetsRepoIf, InsertDefaultGroupSetItem};
-use crate::repos::group_sets::{GroupSetItem, GroupSetsRepoIf, InsertGroupSetItem};
+use crate::repos::group_sets::{GroupSetsRepoIf, InsertGroupSetItem};
 use crate::repos::groups::{Group, GroupsRepoIf, InsertGroup};
-use crate::repos::groups_ordering::{GroupsOrderingRepoIf, InsertGroupOrder};
+use crate::repos::groups_ordering::GroupsOrderingRepoIf;
 use crate::repos::Id;
 use crate::repos::users::User;
-use crate::services::{PagedResponse, Paging};
+use crate::services::{Paged, PageInfo};
 use crate::utils::{AppResult, Refs};
 
 pub const PAGING_MAX_LIMIT: i32 = 1000;
@@ -42,7 +43,13 @@ pub trait GroupsServiceIf: Interface {
         after_group: Option<&Id>,
     ) -> AppResult<UserGroup>;
     async fn remove(&self, user: &User, id: &Id) -> AppResult<RemovedGroup>;
-    async fn list(&self, user: &User, paging: &Paging) -> AppResult<PagedResponse<UserGroup>>;
+    async fn list(
+        &self,
+        user: &User,
+        set_name: Option<&str>,
+        paging: Option<Paging>,
+    ) -> AppResult<Paged<UserGroup>>;
+    // ) -> Vec<UserGroup>;
 }
 
 #[derive(Component, HasLogger)]
@@ -216,7 +223,7 @@ impl GroupsServiceIf for GroupsService {
         })
     }
 
-    async fn remove(&self, user: &User, id: &Id) -> AppResult<RemovedGroup> {
+    async fn remove(&self, _user: &User, _id: &Id) -> AppResult<RemovedGroup> {
         unimplemented!()
 
         // let mut ordering = self.groups_ordering_repo.get_by_user_id(&user.id).await;
@@ -258,7 +265,14 @@ impl GroupsServiceIf for GroupsService {
         // })
     }
 
-    async fn list(&self, user: &User, paging: &Paging) -> AppResult<PagedResponse<UserGroup>> {
+    async fn list(
+        &self,
+        user: &User,
+        set_name: Option<&str>,
+        paging: Option<Paging>,
+    ) -> AppResult<Paged<UserGroup>> {
+        let paging: crate::services::Paging = paging.into();
+
         if paging.limit > PAGING_MAX_LIMIT {
             return Err(AppError::validation(&format!(
                 "Paging limit can not be more then {}",
@@ -266,30 +280,29 @@ impl GroupsServiceIf for GroupsService {
             )));
         }
 
-        let groups_ordering = self
-            .groups_ordering_repo
-            .get_paged_by_user_id(&user.id, paging.offset, paging.limit)
-            .await;
-
-        let groups_ids: Vec<&Id> = groups_ordering.iter().map(|g| &g.group_id).collect();
-        let groups = self.groups_repo.find_by_ids(groups_ids).await;
-
         let mut res: Vec<UserGroup> = vec![];
-        for order in groups_ordering {
-            if let Some(group) = groups.iter().find(|g| g.id == order.group_id) {
-                res.push(UserGroup {
-                    id: group.id.clone(),
-                    name: group.name.clone(),
-                    order: order.order,
-                })
-            }
-        }
 
-        Ok(PagedResponse {
-            total: res.len() as i32,
-            offset: paging.offset,
-            limit: paging.limit,
-            objects: res,
+        let nn: Vec<UserGroup> = match set_name {
+            _ => self
+                .default_group_sets_repo
+                .get_paged_by_user_id(&user.id, paging.offset, paging.limit)
+                .await
+                .into_iter()
+                .map(|x| UserGroup {
+                    id: x.id,
+                    name: x.group_name,
+                    order: x.order,
+                })
+                .collect(),
+        };
+
+        Ok(Paged {
+            objects: nn,
+            page_info: PageInfo {
+                offset: paging.offset,
+                limit: paging.limit,
+                total: None,
+            },
         })
     }
 }

@@ -3,8 +3,8 @@ use std::sync::Arc;
 use actix_web::{HttpRequest, HttpResponse, Result as ActixWebResult, web};
 use actix_web::Result;
 use actix_web_actors::ws;
+use async_graphql::{InputObject, Schema};
 use async_graphql::http::{GraphQLPlaygroundConfig, playground_source};
-use async_graphql::Schema;
 use async_graphql_actix_web::{Request, Response, WSSubscription};
 
 use crate::container::Container;
@@ -17,6 +17,12 @@ pub mod mutation;
 pub mod query;
 pub mod stack;
 pub mod subscription;
+
+#[derive(InputObject)]
+pub struct Paging {
+    pub offset: Option<i32>,
+    pub limit: Option<i32>,
+}
 
 #[derive(Clone)]
 pub struct Context {

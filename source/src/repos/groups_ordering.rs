@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use bson::oid::ObjectId;
-use mongodb::options::FindOptions;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
@@ -11,7 +10,7 @@ use proc_macro::HasLogger;
 
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::db::{delete_by, find_many_by_paged, insert_many_into, PaginationOptions};
+use crate::repos::db::{delete_by, insert_many_into, paged_find_many_by, PaginationOptions};
 use crate::repos::db::find_many_by;
 use crate::repos::Id;
 use crate::utils::Refs;
@@ -74,7 +73,7 @@ impl GroupsOrderingRepoIf for GroupsOrderingRepo {
     async fn get_paged_by_user_id(&self, user_id: &Id, offset: i32, limit: i32) -> Vec<GroupOrder> {
         let user_id: ObjectId = user_id.clone().into();
 
-        find_many_by_paged(
+        paged_find_many_by(
             &self.db.get(),
             COLLECTION,
             doc! {"user_id": user_id},

@@ -10,9 +10,10 @@ use proc_macro::HasLogger;
 
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::db::{delete_by, find_many_by, insert_many_into};
+use crate::repos::db::{
+    delete_by, find_many_by, insert_many_into, paged_find_many_by, PaginationOptions,
+};
 use crate::repos::Id;
-use crate::utils::Refs;
 
 pub const COLLECTION: &str = "default_group_sets";
 
@@ -38,6 +39,12 @@ pub struct DefaultGroupSetItem {
 pub trait DefaultGroupSetsRepoIf: Interface {
     async fn insert(&self, items: Vec<&InsertDefaultGroupSetItem>);
     async fn get_by_user_id(&self, user_id: &Id) -> Vec<DefaultGroupSetItem>;
+    async fn get_paged_by_user_id(
+        &self,
+        user_id: &Id,
+        offset: i32,
+        limit: i32,
+    ) -> Vec<DefaultGroupSetItem>;
     async fn remove_by_user_id(&self, user_id: &Id);
 }
 
@@ -66,6 +73,27 @@ impl DefaultGroupSetsRepoIf for DefaultGroupSetsRepo {
             COLLECTION,
             doc! {"user_id": user_id},
             self.logger(),
+        )
+        .await
+    }
+
+    async fn get_paged_by_user_id(
+        &self,
+        user_id: &Id,
+        offset: i32,
+        limit: i32,
+    ) -> Vec<DefaultGroupSetItem> {
+        let user_id: ObjectId = user_id.clone().into();
+
+        paged_find_many_by(
+            &self.db.get(),
+            COLLECTION,
+            doc! {"user_id": user_id},
+            self.logger(),
+            PaginationOptions {
+                offset: offset as i64,
+                limit: limit as i64,
+            },
         )
         .await
     }

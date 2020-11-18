@@ -1,13 +1,17 @@
 use async_graphql::*;
-use async_graphql::connection::*;
+use async_graphql::connection::{Connection, Edge, EmptyFields, query};
 use async_graphql::Result;
 use chrono::Utc;
 use shaku::HasComponent;
 
 use crate::config::ConfigIf;
 use crate::container::Container;
+use crate::handlers::groups::UserGroup;
+use crate::handlers::Paging;
 use crate::handlers::stack::StackItem;
 use crate::services::auth::AuthServiceIf;
+use crate::services::groups::{GroupsServiceIf, PAGING_MAX_LIMIT};
+use crate::services::PageInfo;
 use crate::services::stack::StackServiceIf;
 use crate::utils::ExtendType;
 
@@ -20,22 +24,51 @@ impl Query {
         config.api_version()
     }
 
-    pub async fn my_stack(&self, ctx: &Context<'_>, access: String) -> Result<Vec<StackItem>> {
+    pub async fn list_groups(
+        &self,
+        ctx: &Context<'_>,
+        access: String,
+        group_set: Option<String>,
+        paging: Option<Paging>,
+    ) -> Result<Connection<usize, UserGroup, PageInfo, EmptyFields>> {
         let ctr: &Container = ctx.data_unchecked::<Container>();
+        let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
         let auth: &dyn AuthServiceIf = ctr.resolve_ref();
-        let user = auth
-            .validate_access(&access, &Utc::now())
-            .await
-            .extend_type()?;
+        let user = auth.validate_access(&access, &Utc::now()).await?;
 
-        let stack_service: &dyn StackServiceIf = ctx.data_unchecked::<Container>().resolve_ref();
-        Ok(stack_service
-            .my_stack(user)
-            .await
-            .into_iter()
-            .map(|i| i.into())
-            .collect())
+        query(None, None, None, None, |_, _, _, _| async move {
+            let sl = groups.list(&user, None, paging).await.extend_type()?;
+
+            let mut connection = Connection::with_additional_fields(
+                false,
+                false,
+                sl.page_info
+            );
+            connection.append(
+                sl.objects.into_iter()
+                    .map(|item| Edge::new(item.order as usize, item)),
+            );
+            Ok(connection)
+        })
+        .await
     }
+
+    // pub async fn my_stack(&self, ctx: &Context<'_>, access: String) -> Result<Vec<StackItem>> {
+    //     let ctr: &Container = ctx.data_unchecked::<Container>();
+    //     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+    //     let user = auth
+    //         .validate_access(&access, &Utc::now())
+    //         .await
+    //         .extend_type()?;
+    //
+    //     let stack_service: &dyn StackServiceIf = ctx.data_unchecked::<Container>().resolve_ref();
+    //     Ok(stack_service
+    //         .my_stack(user)
+    //         .await
+    //         .into_iter()
+    //         .map(|i| i.into())
+    //         .collect())
+    // }
     //
     // pub async fn my_groups(
     //     &self,

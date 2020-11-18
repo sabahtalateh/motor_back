@@ -1,7 +1,7 @@
 use std::fmt;
 use std::fmt::Display;
 
-use async_graphql::{InputValueError, InputValueResult, scalar, Scalar, ScalarType, Value};
+use async_graphql::{InputValueError, InputValueResult, Scalar, ScalarType, Value};
 use bson::oid::ObjectId;
 use serde::{Deserialize, Deserializer, Serialize};
 

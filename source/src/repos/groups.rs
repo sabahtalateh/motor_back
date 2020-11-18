@@ -11,7 +11,7 @@ use proc_macro::HasLogger;
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::repos::db::{find_many_by, find_many_by_ids};
-use crate::repos::db::{find_one_by, find_one_by_id, insert_one_into, set_by_id};
+use crate::repos::db::{find_one_by_id, insert_one_into, set_by_id};
 use crate::repos::Id;
 
 pub const COLLECTION: &str = "groups";

@@ -37,7 +37,7 @@ async fn registration_failed_if_password_weak() -> () {
     trunc_collection(&db.get(), "tokens").await;
 
     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
-    let reg_result = auth.register("U", "1").await;
+    let reg_result = auth.register("U".to_string(), "1".to_string()).await;
 
     assert_eq!(
         reg_result,
@@ -58,7 +58,7 @@ async fn registration_success_if_password_strong() -> () {
     trunc_collection(&db.get(), "users").await;
     trunc_collection(&db.get(), "tokens").await;
 
-    let reg_result = auth.register("U", "12").await;
+    let reg_result = auth.register("U".to_string(), "12".to_string()).await;
 
     assert_eq!(reg_result, Ok(()));
 }
@@ -74,10 +74,10 @@ async fn registration_failed_if_username_exists() -> () {
     trunc_collection(&db.get(), "users").await;
     trunc_collection(&db.get(), "tokens").await;
 
-    let reg_result = auth.register("User", "12").await;
+    let reg_result = auth.register("User".to_string(), "12".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
-    let reg_result = auth.register("User", "12").await;
+    let reg_result = auth.register("User".to_string(), "12".to_string()).await;
     assert_eq!(
         reg_result,
         Err(AppError::validation("Username `User` already taken"))
@@ -94,10 +94,10 @@ async fn can_not_login_with_incorrect_creds() -> () {
     let db: &dyn DBIf = ctr.resolve_ref();
     trunc_collection(&db.get(), "users").await;
 
-    let reg_result = auth.register("User2", "12").await;
+    let reg_result = auth.register("User2".to_string(), "12".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
-    let login_result = auth.login("User3", "12", Utc::now()).await;
+    let login_result = auth.login("User3".to_string(), "12".to_string(), Utc::now()).await;
     assert_eq!(login_result.is_err(), true);
 }
 
@@ -112,10 +112,10 @@ async fn can_login_with_ok_creds() -> () {
     trunc_collection(&db.get(), "users").await;
     trunc_collection(&db.get(), "tokens").await;
 
-    let reg_result = auth.register("User3", "123").await;
+    let reg_result = auth.register("User3".to_string(), "123".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
-    let login_result = auth.login("User3", "123", Utc::now()).await;
+    let login_result = auth.login("User3".to_string(), "123".to_string(), Utc::now()).await;
     assert!(login_result.is_ok());
 }
 
@@ -129,10 +129,10 @@ async fn refresh_fails_with_incorrect_token() -> () {
     trunc_collection(&db.get(), "users").await;
     trunc_collection(&db.get(), "tokens").await;
 
-    let reg_result = auth.register("User8", "321123").await;
+    let reg_result = auth.register("User8".to_string(), "321123".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
-    let refresh_result = auth.refresh_token("incorrect_token", Utc::now()).await;
+    let refresh_result = auth.refresh_token("incorrect_token", &Utc::now()).await;
     assert_eq!(refresh_result.map(|_| ()), Err(AppError::unauthorized()));
 }
 
@@ -147,12 +147,12 @@ async fn refresh_success_with_correct_token() -> () {
     trunc_collection(&db.get(), "users").await;
     trunc_collection(&db.get(), "tokens").await;
 
-    let reg_result = auth.register("User101", "321000").await;
+    let reg_result = auth.register("User101".to_string(), "321000".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
-    let tokens = auth.login("User101", "321000", Utc::now()).await.unwrap();
+    let tokens = auth.login("User101".to_string(), "321000".to_string(), Utc::now()).await.unwrap();
 
-    let refresh_result = auth.refresh_token(&tokens.refresh, Utc::now()).await;
+    let refresh_result = auth.refresh_token(&tokens.refresh, &Utc::now()).await;
     assert!(refresh_result.is_ok());
 }
 
@@ -170,12 +170,12 @@ async fn refresh_failed_with_expired_token() -> () {
 
     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
 
-    let reg_result = auth.register("User1011", "321000").await;
+    let reg_result = auth.register("User1011".to_string(), "321000".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
-    let tokens = auth.login("User1011", "321000", Utc::now()).await.unwrap();
+    let tokens = auth.login("User1011".to_string(), "321000".to_string(), Utc::now()).await.unwrap();
 
-    let refresh_result = auth.refresh_token(&tokens.refresh, Utc::now()).await;
+    let refresh_result = auth.refresh_token(&tokens.refresh, &Utc::now()).await;
     assert_eq!(refresh_result.map(|_|()), Err(AppError::unauthorized()));
 }
 
@@ -193,7 +193,7 @@ async fn validation_failed_for_incorrect_access() -> () {
 
     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
 
-    let reg_result = auth.register("User10115", "321000").await;
+    let reg_result = auth.register("User10115".to_string(), "321000".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
     let result = auth.validate_access("incorrect_access", &Utc::now()).await;
@@ -211,10 +211,10 @@ async fn validation_passed_for_correct_access() -> () {
 
     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
 
-    let reg_result = auth.register("User10112", "321000").await;
+    let reg_result = auth.register("User10112".to_string(), "321000".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
-    let tokens = auth.login("User10112", "321000", &Utc::now()).await.unwrap();
+    let tokens = auth.login("User10112".to_string(), "321000".to_string(), Utc::now()).await.unwrap();
 
     let result = auth.validate_access(&tokens.access, &Utc::now()).await;
     assert!(result.is_ok());
