@@ -1,9 +1,10 @@
+use async_graphql::{InputValueError, InputValueResult, Scalar, ScalarType, Value};
+use async_trait::async_trait;
+use bson::oid::ObjectId;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt;
 use std::fmt::Display;
-
-use async_graphql::{InputValueError, InputValueResult, Scalar, ScalarType, Value};
-use bson::oid::ObjectId;
-use serde::{Deserialize, Deserializer, Serialize};
 
 pub mod blocks;
 pub mod db;
@@ -12,10 +13,22 @@ pub mod group_sets;
 pub mod groups;
 pub mod groups_ordering;
 pub mod marks;
+pub mod sets;
 pub mod stack;
 pub mod stack_history;
 pub mod tokens;
 pub mod users;
+
+#[async_trait]
+pub trait Repo<Select, Insert>
+where
+    Select: DeserializeOwned,
+    Insert: Serialize,
+{
+    async fn find(&self, id: &Id) -> Option<Select>;
+    async fn find_many(&self, ids: Vec<&Id>) -> Vec<Select>;
+    async fn insert(&self, insert: Insert) -> Select;
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Id(pub String);

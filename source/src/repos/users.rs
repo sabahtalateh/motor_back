@@ -51,7 +51,7 @@ pub struct User {
 #[async_trait]
 impl UsersRepoIf for UsersRepo {
     async fn find(&self, id: &Id) -> Option<User> {
-        find_one_by_id(&self.db.get(), "users", id, self.logger()).await
+        find_one_by_id(&self.db.get(), COLLECTION, id, self.logger()).await
     }
 
     async fn insert(&self, new_user: &NewUser) {

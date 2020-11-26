@@ -22,8 +22,8 @@ pub trait AuthServiceIf: Interface {
         now: DateTime<Utc>,
     ) -> AppResult<TokenPair>;
     async fn register(&self, login: String, password: String) -> AppResult<()>;
-    async fn refresh_token(&self, refresh: &str, now: &DateTime<Utc>) -> AppResult<TokenPair>;
-    async fn validate_access(&self, access: &str, now: &DateTime<Utc>) -> AppResult<User>;
+    async fn refresh_token(&self, refresh: &str, now: DateTime<Utc>) -> AppResult<TokenPair>;
+    async fn validate_access(&self, access: &str, now: DateTime<Utc>) -> AppResult<User>;
 }
 
 #[derive(Component, HasLogger)]
@@ -103,14 +103,14 @@ impl AuthServiceIf for AuthService {
         Ok(())
     }
 
-    async fn refresh_token(&self, refresh: &str, now: &DateTime<Utc>) -> AppResult<TokenPair> {
+    async fn refresh_token(&self, refresh: &str, now: DateTime<Utc>) -> AppResult<TokenPair> {
         let token = self
             .tokens_repo
             .find_by_refresh(refresh)
             .await
             .ok_or_unauthorized()?;
 
-        if &token.refresh_lifetime < now {
+        if &token.refresh_lifetime < &now {
             return Err(AppError::unauthorized());
         }
 
@@ -120,18 +120,18 @@ impl AuthServiceIf for AuthService {
         Ok(token)
     }
 
-    async fn validate_access(&self, access: &str, now: &DateTime<Utc>) -> AppResult<User> {
+    async fn validate_access(&self, access: &str, now: DateTime<Utc>) -> AppResult<User> {
         let token = self
             .tokens_repo
             .find_by_access(access)
             .await
             .ok_or_unauthorized()?;
 
-        if &token.access_lifetime < now && &token.refresh_lifetime <= now {
+        if &token.access_lifetime < &now && &token.refresh_lifetime <= &now {
             return Err(AppError::unauthorized());
         }
 
-        if &token.access_lifetime < now && &token.refresh_lifetime > now {
+        if &token.access_lifetime < &now && &token.refresh_lifetime > &now {
             return Err(AppError::access_expire());
         }
 

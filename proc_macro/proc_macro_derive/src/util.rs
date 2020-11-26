@@ -1,4 +1,5 @@
 use proc_macro::{TokenStream, TokenTree};
+use proc_macro2::Span;
 use proc_macro_error::abort_call_site;
 use syn;
 
@@ -76,4 +77,8 @@ pub(crate) fn extract_helpers(
     }
 
     helpers
+}
+
+pub(crate) fn str_to_ident(str: &str) -> proc_macro2::TokenTree {
+    proc_macro2::TokenTree::Ident(proc_macro2::Ident::new(str, Span::call_site()))
 }

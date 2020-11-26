@@ -1,8 +1,7 @@
-use async_graphql::InputObject;
-use async_graphql::SimpleObject;
-
 use crate::handlers::Paging as HandlerPaging;
 use crate::services::groups::PAGING_MAX_LIMIT;
+use async_graphql::InputObject;
+use async_graphql::SimpleObject;
 
 pub mod auth;
 pub mod groups;
@@ -26,6 +25,10 @@ impl From<Option<HandlerPaging>> for Paging {
             if let Some(l) = paging.limit {
                 limit = l
             }
+        }
+
+        if offset < 0 {
+            offset = 0
         }
 
         return Paging { offset, limit };

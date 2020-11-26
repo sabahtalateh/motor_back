@@ -132,7 +132,7 @@ async fn refresh_fails_with_incorrect_token() -> () {
     let reg_result = auth.register("User8".to_string(), "321123".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
-    let refresh_result = auth.refresh_token("incorrect_token", &Utc::now()).await;
+    let refresh_result = auth.refresh_token("incorrect_token", Utc::now()).await;
     assert_eq!(refresh_result.map(|_| ()), Err(AppError::unauthorized()));
 }
 
@@ -152,7 +152,7 @@ async fn refresh_success_with_correct_token() -> () {
 
     let tokens = auth.login("User101".to_string(), "321000".to_string(), Utc::now()).await.unwrap();
 
-    let refresh_result = auth.refresh_token(&tokens.refresh, &Utc::now()).await;
+    let refresh_result = auth.refresh_token(&tokens.refresh, Utc::now()).await;
     assert!(refresh_result.is_ok());
 }
 
@@ -175,7 +175,7 @@ async fn refresh_failed_with_expired_token() -> () {
 
     let tokens = auth.login("User1011".to_string(), "321000".to_string(), Utc::now()).await.unwrap();
 
-    let refresh_result = auth.refresh_token(&tokens.refresh, &Utc::now()).await;
+    let refresh_result = auth.refresh_token(&tokens.refresh, Utc::now()).await;
     assert_eq!(refresh_result.map(|_|()), Err(AppError::unauthorized()));
 }
 
@@ -196,7 +196,7 @@ async fn validation_failed_for_incorrect_access() -> () {
     let reg_result = auth.register("User10115".to_string(), "321000".to_string()).await;
     assert_eq!(reg_result, Ok(()));
 
-    let result = auth.validate_access("incorrect_access", &Utc::now()).await;
+    let result = auth.validate_access("incorrect_access", Utc::now()).await;
     assert_eq!(result.map(|_|()), Err(AppError::unauthorized()));
 }
 
@@ -216,7 +216,7 @@ async fn validation_passed_for_correct_access() -> () {
 
     let tokens = auth.login("User10112".to_string(), "321000".to_string(), Utc::now()).await.unwrap();
 
-    let result = auth.validate_access(&tokens.access, &Utc::now()).await;
+    let result = auth.validate_access(&tokens.access, Utc::now()).await;
     assert!(result.is_ok());
     assert_eq!(result.unwrap().username, "User10112");
 }

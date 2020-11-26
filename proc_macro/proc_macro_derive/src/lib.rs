@@ -2,9 +2,10 @@ mod util;
 
 extern crate proc_macro;
 
-use crate::util::{applied_to_struct, extract_helpers, parse_struct_name};
+use crate::util::{applied_to_struct, extract_helpers, parse_struct_name, str_to_ident};
 use darling::FromMeta;
-use proc_macro::{TokenStream};
+use proc_macro::TokenStream;
+use proc_macro2::{Literal, Span, TokenTree};
 use proc_macro_error::{abort_call_site, proc_macro_error};
 use quote::quote;
 use syn::{parse_macro_input, AttributeArgs};
@@ -90,3 +91,171 @@ pub fn has_logger(input: TokenStream) -> TokenStream {
     };
     tt.into()
 }
+
+#[derive(Debug)]
+struct RepoArgs {
+    collection: String,
+    select: String,
+    insert: String,
+}
+
+impl From<TokenStream> for RepoArgs {
+    fn from(ts: TokenStream) -> Self {
+        let panic_msg = "wrong repo args. should be #[repo(select = X, insert = Y, collection = Z)]";
+
+        let mut select = "".to_string();
+        let mut insert = "".to_string();
+        let mut collection = "".to_string();
+
+        let mut step = 0;
+
+        for t in ts {
+            // ну это ваше то можно нормально переписать но мне лень
+            // можно переписать типо номер шага и братку-обратку передавать (колбек ёпта)
+            // тогда вмест такого полотна будет просто семь строчек
+            if step == 0 {
+                match t.clone() {
+                    proc_macro::TokenTree::Ident(i) => {
+                        if "select" != &i.to_string() {
+                            panic!(panic_msg)
+                        }
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            if step == 1 {
+                match t.clone() {
+                    proc_macro::TokenTree::Punct(p) => {
+                        if '=' != p.as_char() {
+                            panic!(panic_msg)
+                        }
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            if step == 2 {
+                match t.clone() {
+                    proc_macro::TokenTree::Ident(i) => {
+                        select = i.to_string();
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            if step == 3 {
+                match t.clone() {
+                    proc_macro::TokenTree::Punct(p) => {
+                        if ',' != p.as_char() {
+                            panic!(panic_msg)
+                        }
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            if step == 4 {
+                match t.clone() {
+                    proc_macro::TokenTree::Ident(i) => {
+                        if "insert" != &i.to_string() {
+                            panic!(panic_msg)
+                        }
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            if step == 5 {
+                match t.clone() {
+                    proc_macro::TokenTree::Punct(p) => {
+                        if '=' != p.as_char() {
+                            panic!(panic_msg)
+                        }
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            if step == 6 {
+                match t.clone() {
+                    proc_macro::TokenTree::Ident(i) => {
+                        insert = i.to_string();
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            if step == 7 {
+                match t.clone() {
+                    proc_macro::TokenTree::Punct(p) => {
+                        if ',' != p.as_char() {
+                            panic!(panic_msg)
+                        }
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            if step == 8 {
+                match t.clone() {
+                    proc_macro::TokenTree::Ident(i) => {
+                        if "collection" != &i.to_string() {
+                            panic!(panic_msg)
+                        }
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            if step == 9 {
+                match t.clone() {
+                    proc_macro::TokenTree::Punct(p) => {
+                        if '=' != p.as_char() {
+                            panic!(panic_msg)
+                        }
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            if step == 10 {
+                match t.clone() {
+                    proc_macro::TokenTree::Ident(i) => {
+                        collection = i.to_string();
+                    }
+                    _ => panic!(panic_msg),
+                }
+            }
+
+            step += 1
+        }
+
+        RepoArgs {
+            select,
+            insert,
+            collection,
+        }
+    }
+}
+
+// #[proc_macro_error]
+// #[proc_macro_attribute]
+// pub fn repo(args: TokenStream, input: TokenStream) -> TokenStream {
+//     let repo_args: RepoArgs = args.into();
+//     let select = str_to_ident(&repo_args.select);
+//     let insert = str_to_ident(&repo_args.insert);
+//
+//     let struct_name = str_to_ident(&parse_struct_name(input.clone()));
+//
+//     let tt = quote! {
+//         #[async_trait]
+//         impl Repo for #struct_name {
+//             async fn find(&self) {
+//
+//             }
+//         }
+//     };
+//
+//     (input.to_string() + &tt.to_string()).parse().unwrap()
+// }

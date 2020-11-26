@@ -1,15 +1,15 @@
-use async_graphql::{Context, Object};
 use async_graphql::Result;
+use async_graphql::{Context, Object};
 use chrono::Utc;
 use shaku::HasComponent;
 
 use crate::config::ConfigIf;
 use crate::container::Container;
 use crate::handlers::groups::UserGroup;
-use crate::repos::Id;
 use crate::repos::tokens::TokenPair;
+use crate::repos::Id;
 use crate::services::auth::AuthServiceIf;
-use crate::services::groups::GroupsServiceIf;
+use crate::services::groups::{GroupsServiceIf, IntoSet};
 use crate::utils::ExtendType;
 
 pub struct Mutation;
@@ -52,7 +52,7 @@ impl Mutation {
         let ctr: &Container = ctx.data_unchecked::<Container>();
         let auth: &dyn AuthServiceIf = ctr.resolve_ref();
 
-        auth.refresh_token(&refresh, &Utc::now())
+        auth.refresh_token(&refresh, Utc::now())
             .await
             .extend_type()
     }
@@ -67,16 +67,12 @@ impl Mutation {
     ) -> Result<UserGroup> {
         let ctr: &Container = ctx.data_unchecked::<Container>();
         let auth: &dyn AuthServiceIf = ctr.resolve_ref();
-        let user = auth.validate_access(&access, &Utc::now()).await?;
+        let user = auth.validate_access(&access, Utc::now()).await?;
 
         let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
+
         groups
-            .create_group(
-                &user,
-                &group_name,
-                group_set.as_deref(),
-                insert_after.as_ref(),
-            )
+            .create_group(user, group_name, group_set.into(), insert_after)
             .await
             .extend_type()
     }

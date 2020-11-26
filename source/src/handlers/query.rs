@@ -1,18 +1,19 @@
-use async_graphql::*;
-use async_graphql::connection::{Connection, Edge, EmptyFields, query};
+use async_graphql::connection::{query, Connection, Edge, EmptyFields};
 use async_graphql::Result;
+use async_graphql::*;
 use chrono::Utc;
 use shaku::HasComponent;
 
 use crate::config::ConfigIf;
 use crate::container::Container;
 use crate::handlers::groups::UserGroup;
-use crate::handlers::Paging;
 use crate::handlers::stack::StackItem;
+use crate::handlers::Paging;
+use crate::repos::Id;
 use crate::services::auth::AuthServiceIf;
-use crate::services::groups::{GroupsServiceIf, PAGING_MAX_LIMIT};
-use crate::services::PageInfo;
+use crate::services::groups::{GroupsServiceIf, Set};
 use crate::services::stack::StackServiceIf;
+use crate::services::PageInfo;
 use crate::utils::ExtendType;
 
 pub struct Query;
@@ -22,6 +23,19 @@ impl Query {
     pub async fn api_version<'a>(&'a self, ctx: &'a Context<'_>) -> &'a str {
         let config: &dyn ConfigIf = ctx.data_unchecked::<Container>().resolve_ref();
         config.api_version()
+    }
+
+    pub async fn recent_sets(&self, ctx: &Context<'_>, access: String) -> Result<Vec<Set>> {
+        let ctr: &Container = ctx.data_unchecked::<Container>();
+        let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+        let user = auth.validate_access(&access, Utc::now()).await?;
+
+        let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
+
+        Ok(vec![Set {
+            id: Id::from_str("123"),
+            name: "123".to_string(),
+        }])
     }
 
     pub async fn list_groups(
@@ -34,18 +48,18 @@ impl Query {
         let ctr: &Container = ctx.data_unchecked::<Container>();
         let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
         let auth: &dyn AuthServiceIf = ctr.resolve_ref();
-        let user = auth.validate_access(&access, &Utc::now()).await?;
+        let user = auth.validate_access(&access, Utc::now()).await?;
 
         query(None, None, None, None, |_, _, _, _| async move {
-            let sl = groups.list(&user, None, paging).await.extend_type()?;
+            let sl = groups
+                .list_groups(user, group_set.into(), paging)
+                .await
+                .extend_type()?;
 
-            let mut connection = Connection::with_additional_fields(
-                false,
-                false,
-                sl.page_info
-            );
+            let mut connection = Connection::with_additional_fields(false, false, sl.page_info);
             connection.append(
-                sl.objects.into_iter()
+                sl.objects
+                    .into_iter()
                     .map(|item| Edge::new(item.order as usize, item)),
             );
             Ok(connection)

@@ -1,21 +1,25 @@
 use std::io;
 
 use actix_cors::Cors;
-use actix_web::{App, guard, http::header, http::Method, HttpServer, middleware, web};
+use actix_web::{guard, http::header, http::Method, middleware, web, App, HttpServer};
 use async_graphql::Schema;
 use url::Url;
 
 use motor_back::config::Config;
 use motor_back::container::Container;
-use motor_back::handlers::{
-    graphql, graphql_subscriptions, health, index_playground, query::Query, subscription::Subscription,
-};
 use motor_back::handlers::mutation::Mutation;
+use motor_back::handlers::{
+    graphql, graphql_subscriptions, health, index_playground, query::Query,
+    subscription::Subscription,
+};
 use motor_back::init::init_app;
 
 #[actix_rt::main]
 async fn main() -> Result<(), io::Error> {
     let config = Config::load();
+
+    println!("{:#?}", config);
+
     let container: Container = init_app(&config).await;
 
     let bind_addr = format!("{}:{}", &config.host, &config.port);
@@ -26,13 +30,19 @@ async fn main() -> Result<(), io::Error> {
         .finish();
 
     HttpServer::new(move || {
-        let mut cors = Cors::new().allowed_origin(&self_host);
+        let mut cors = Cors::new()
+            .allowed_origin(&self_host);
 
         for origin in &config.allowed_origins {
-            let parsed = Url::parse(origin)
+            let url = Url::parse(origin)
                 .expect(&format!("allowed origin `{}` is not a valid url", origin));
 
-            cors = cors.allowed_origin(parsed.as_str());
+            let mut origin = format!("{}://{}", url.scheme(), url.host().unwrap());
+            if let Some(port) = url.port() {
+                origin = format!("{}:{}", origin, port);
+            }
+
+            cors = cors.allowed_origin(&origin);
         }
 
         let cors = cors

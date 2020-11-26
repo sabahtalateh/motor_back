@@ -9,6 +9,7 @@ use crate::repos::group_sets::GroupSetsRepo;
 use crate::repos::groups::GroupsRepo;
 use crate::repos::groups_ordering::GroupsOrderingRepo;
 use crate::repos::marks::MarksRepo;
+use crate::repos::sets::SetsRepo;
 use crate::repos::stack::StackRepo;
 use crate::repos::stack_history::StackHistoryRepo;
 use crate::repos::tokens::TokensRepo;
@@ -32,6 +33,7 @@ module! {
             GroupsOrderingRepo,
             GroupSetsRepo,
             MarksRepo,
+            SetsRepo,
             StackRepo,
             StackHistoryRepo,
             TokensRepo,

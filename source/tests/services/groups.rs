@@ -1,15 +1,14 @@
-use shaku::HasComponent;
-
+use crate::drop_and_setup_with_random_user;
 use motor_back::container::Container;
 use motor_back::db::DBIf;
 use motor_back::errors::AppError;
 use motor_back::handlers::groups::UserGroup;
-use motor_back::repos::Id;
+use motor_back::handlers::Paging;
 use motor_back::repos::users::User;
-use motor_back::services::{Paged, Paging};
-use motor_back::services::groups::{GroupsServiceIf, PAGING_MAX_LIMIT};
-
-use crate::drop_and_setup_with_random_user;
+use motor_back::repos::Id;
+use motor_back::services::groups::{GroupsServiceIf, IntoSet, PAGING_MAX_LIMIT};
+use motor_back::services::Paged;
+use shaku::HasComponent;
 
 #[actix_rt::test]
 async fn can_not_get_groups_if_pagination_limit_too_big() {
@@ -17,13 +16,13 @@ async fn can_not_get_groups_if_pagination_limit_too_big() {
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let res = groups_service
-        .list(
-            &user,
-            None,
-            &Paging {
-                offset: 0,
-                limit: PAGING_MAX_LIMIT + 1,
-            },
+        .list_groups(
+            user,
+            IntoSet::Default,
+            Some(Paging {
+                offset: Some(0),
+                limit: Some(PAGING_MAX_LIMIT + 1),
+            }),
         )
         .await;
 
@@ -42,7 +41,7 @@ async fn can_create_group_when_no_groups_created() {
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let group = groups_service
-        .create_group(&user, "some group", None, None)
+        .create_group(user, "some group".to_string(), IntoSet::Default, None)
         .await
         .unwrap();
 
@@ -51,18 +50,18 @@ async fn can_create_group_when_no_groups_created() {
 }
 
 #[actix_rt::test]
-async fn objects_empty_if_nothing_inserted() {
+async fn default_group_set_empty_if_nothing_inserted_in_it() {
     let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let response = groups_service
-        .list(
-            &user,
-            None,
-            &Paging {
-                offset: 0,
-                limit: 100,
-            },
+        .list_groups(
+            user,
+            IntoSet::Default,
+            Some(Paging {
+                offset: Some(0),
+                limit: Some(100),
+            }),
         )
         .await
         .unwrap();
@@ -71,57 +70,96 @@ async fn objects_empty_if_nothing_inserted() {
 }
 
 #[actix_rt::test]
-async fn pagination_params_correct() {
+async fn group_set_empty_if_nothing_inserted_in_it() {
     let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
-    let response: Paged<UserGroup> = groups_service
-        .list(
-            &user,
-            None,
-            &Paging {
-                offset: 19,
-                limit: 84,
-            },
+    let response = groups_service
+        .list_groups(
+            user,
+            IntoSet::Named("some_set".to_string()),
+            Some(Paging {
+                offset: Some(0),
+                limit: Some(100),
+            }),
         )
         .await
         .unwrap();
 
-    assert_eq!(response.offset, 19);
-    assert_eq!(response.limit, 84);
-    assert_eq!(response.total, 0);
+    assert_eq!(response.objects, vec![]);
 }
 
 #[actix_rt::test]
-async fn groups_presented_after_insertion() {
+async fn pagination_params_returned_same_as_passed() {
+    let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
+    let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
+
+    let response: Paged<UserGroup> = groups_service
+        .list_groups(
+            user,
+            IntoSet::Default,
+            Some(Paging {
+                offset: Some(19),
+                limit: Some(84),
+            }),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.page_info.offset, 19);
+    assert_eq!(response.page_info.limit, 84);
+    assert_eq!(response.page_info.total, None);
+}
+
+#[actix_rt::test]
+async fn groups_presented_after_insertion_in_default_set() {
     let (ctr, user): (Container, User) = drop_and_setup_with_random_user().await;
     let groups_service: &dyn GroupsServiceIf = ctr.resolve_ref();
 
     let inserted_group_0 = groups_service
-        .create_group(&user, "group 0", None, None)
+        .create_group(user.clone(), "group 0".to_string(), IntoSet::Default, None)
         .await
         .unwrap();
+
     let inserted_group_1 = groups_service
-        .create_group(&user, "group 1", None, Some(&inserted_group_0.id))
+        .create_group(
+            user.clone(),
+            "group 1".to_string(),
+            IntoSet::Default,
+            Some(inserted_group_0.clone().id),
+        )
         .await
         .unwrap();
 
     let groups = groups_service
-        .list(
-            &user,
-            None,
-            &Paging {
-                offset: 0,
-                limit: 2,
-            },
+        .list_groups(
+            user.clone(),
+            IntoSet::Default,
+            Some(Paging {
+                offset: Some(0),
+                limit: Some(2),
+            }),
         )
         .await
         .unwrap()
         .objects;
 
-    assert_eq!(groups.get(0).unwrap().clone(), inserted_group_0);
-    assert_eq!(groups.get(1).unwrap().clone(), inserted_group_1);
+    println!("{:#?}", groups);
+
+    let group_0 = groups.get(0).unwrap().clone();
+    assert_eq!(group_0.id, inserted_group_0.id);
+    assert_eq!(group_0.name, inserted_group_0.name);
+    assert_eq!(group_0.order, inserted_group_0.order);
+
+    let group_1 = groups.get(1).unwrap().clone();
+    assert_eq!(group_1.id, inserted_group_1.id);
+    assert_eq!(group_1.name, inserted_group_1.name);
+    assert_eq!(group_1.order, inserted_group_1.order);
 }
+
+// TODO
+// Тест на добавление группы в разные сеты
+// Чо делать когда одна группа в нескольких сетах, сколько раз она в дефолтном сете
 
 // #[actix_rt::test]
 // async fn groups_inserted_in_correct_order() {

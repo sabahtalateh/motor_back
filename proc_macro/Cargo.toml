@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 slog = "2.5.2"
+async-trait = "0.1.42"
