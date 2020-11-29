@@ -18,8 +18,6 @@ use motor_back::init::init_app;
 async fn main() -> Result<(), io::Error> {
     let config = Config::load();
 
-    println!("{:#?}", config);
-
     let container: Container = init_app(&config).await;
 
     let bind_addr = format!("{}:{}", &config.host, &config.port);

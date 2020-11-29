@@ -1,15 +1,16 @@
-use bson::Document;
 use bson::oid::ObjectId;
+use bson::Document;
 use futures::StreamExt;
-use mongodb::Database;
 use mongodb::options::FindOptions;
+use mongodb::Database;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use slog::Logger;
 
 use crate::repos::Id;
-use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
 use crate::utils::OkOrMongoRecordId;
+use crate::utils::{deserialize_bson, IntoAppErr, LogErrWith};
+use mongodb::results::DeleteResult;
 
 pub(crate) async fn find_one_by_id<T>(
     db: &Database,
@@ -195,7 +196,12 @@ where
         .collect()
 }
 
-pub(crate) async fn set_by_id(db: &Database, collection: &str, id: &Id, set: Document) -> bool {
+pub(crate) async fn update_one_by_id(
+    db: &Database,
+    collection: &str,
+    id: &Id,
+    set: Document,
+) -> bool {
     let id: ObjectId = id.clone().into();
 
     let update_result = db
@@ -207,7 +213,7 @@ pub(crate) async fn set_by_id(db: &Database, collection: &str, id: &Id, set: Doc
     update_result.modified_count > 0
 }
 
-pub(crate) async fn delete_by_id(db: &Database, collection: &str, id: &Id) -> bool {
+pub(crate) async fn delete_one_by_id(db: &Database, collection: &str, id: &Id) -> bool {
     let id: ObjectId = id.clone().into();
 
     let delete_result = db
@@ -219,7 +225,7 @@ pub(crate) async fn delete_by_id(db: &Database, collection: &str, id: &Id) -> bo
     delete_result.deleted_count > 0
 }
 
-pub(crate) async fn delete_by(db: &Database, collection: &str, criteria: Document) -> bool {
+pub(crate) async fn delete_many_by(db: &Database, collection: &str, criteria: Document) -> bool {
     let delete_result = db
         .collection(collection)
         .delete_many(criteria, None)

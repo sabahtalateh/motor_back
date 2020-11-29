@@ -10,7 +10,7 @@ use proc_macro::HasLogger;
 
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::db::{delete_by, find_many_by, find_one_by, insert_many_into, paged_find_many_by, PaginationOptions, find_one_by_id};
+use crate::repos::db::{delete_many_by, find_many_by, find_one_by, insert_many_into, paged_find_many_by, PaginationOptions, find_one_by_id};
 use crate::repos::Id;
 
 pub const COLLECTION: &str = "group_sets";
@@ -148,7 +148,7 @@ impl GroupSetsRepoIf for GroupSetsRepo {
     async fn remove_by_set_name_and_user_id(&self, set_name: &str, user_id: &Id) {
         let user_id: ObjectId = user_id.clone().into();
 
-        delete_by(
+        delete_many_by(
             &self.db.get(),
             COLLECTION,
             doc! {"set_name": set_name, "user_id": user_id},

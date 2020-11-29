@@ -1,7 +1,7 @@
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::db::{find_many_by, find_many_by_ids};
-use crate::repos::db::{find_one_by_id, insert_one_into, set_by_id};
+use crate::repos::db::{find_many_by, find_many_by_ids, find_one_by};
+use crate::repos::db::{find_one_by_id, insert_one_into, update_one_by_id};
 use crate::repos::{Id, Repo};
 use async_trait::async_trait;
 use bson::oid::ObjectId;
@@ -28,7 +28,9 @@ pub struct Set {
 }
 
 #[async_trait]
-pub trait SetsRepoIf: Interface + Repo<Set, InsertSet> {}
+pub trait SetsRepoIf: Interface + Repo<Set, InsertSet> {
+    async fn find_one_by_creator_id_and_name(&self, user_id: &Id, name: &str) -> Option<Set>;
+}
 
 #[shaku(interface = SetsRepoIf)]
 #[derive(Component, HasLogger)]
@@ -43,14 +45,6 @@ pub struct SetsRepo {
 
 #[async_trait]
 impl Repo<Set, InsertSet> for SetsRepo {
-    async fn find(&self, id: &Id) -> Option<Set> {
-        find_one_by_id(&self.db.get(), COLLECTION, id, self.logger()).await
-    }
-
-    async fn find_many(&self, ids: Vec<&Id>) -> Vec<Set> {
-        unimplemented!()
-    }
-
     async fn insert(&self, insert: InsertSet) -> Set {
         let id = insert_one_into(&self.db.get(), COLLECTION, &insert, self.logger()).await;
         Set {
@@ -59,7 +53,37 @@ impl Repo<Set, InsertSet> for SetsRepo {
             name: insert.name,
         }
     }
+
+    async fn insert_many(&self, insert: Vec<&InsertSet>) {
+        unimplemented!()
+    }
+
+    async fn find(&self, id: &Id) -> Option<Set> {
+        find_one_by_id(&self.db.get(), COLLECTION, id, self.logger()).await
+    }
+
+    async fn find_many(&self, ids: Vec<&Id>) -> Vec<Set> {
+        find_many_by_ids(&self.db.get(), COLLECTION, ids, &self.logger()).await
+    }
+
+    async fn delete(&self, id: &Id) {
+        unimplemented!()
+    }
+
+    async fn delete_many(&self, ids: Vec<&Id>) {
+        unimplemented!()
+    }
 }
 
 #[async_trait]
-impl SetsRepoIf for SetsRepo {}
+impl SetsRepoIf for SetsRepo {
+    async fn find_one_by_creator_id_and_name(&self, user_id: &Id, name: &str) -> Option<Set> {
+        find_one_by(
+            &self.db.get(),
+            COLLECTION,
+            doc! {"creator_id": user_id.oid(), "name": name},
+            &self.logger(),
+        )
+        .await
+    }
+}

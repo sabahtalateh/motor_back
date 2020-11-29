@@ -1,17 +1,17 @@
-use std::sync::Arc;
-
+use crate::db::DBIf;
+use crate::logger::AppLoggerIf;
+use crate::repos::db::{
+    delete_many_by, find_many_by, find_one_by, find_one_by_id, insert_many_into, paged_find_many_by,
+    PaginationOptions,
+};
+use crate::repos::Id;
 use async_trait::async_trait;
 use bson::oid::ObjectId;
+use proc_macro::HasLogger;
 use serde::{Deserialize, Serialize};
 use shaku::{Component, Interface};
 use slog::Logger;
-
-use proc_macro::HasLogger;
-
-use crate::db::DBIf;
-use crate::logger::AppLoggerIf;
-use crate::repos::db::{delete_by, find_many_by, insert_many_into, paged_find_many_by, PaginationOptions, find_one_by_id, find_one_by};
-use crate::repos::Id;
+use std::sync::Arc;
 
 pub const COLLECTION: &str = "default_group_sets";
 
@@ -39,9 +39,9 @@ pub trait DefaultGroupSetsRepoIf: Interface {
 
     async fn find_by_group_id(&self, group_id: &Id) -> Option<DefaultGroupSetItem>;
 
-    async fn insert(&self, items: Vec<&InsertDefaultGroupSetItem>);
+    async fn insert_many(&self, items: Vec<&InsertDefaultGroupSetItem>);
 
-    async fn get_by_user_id(&self, user_id: &Id) -> Vec<DefaultGroupSetItem>;
+    async fn find_by_user_id(&self, user_id: &Id) -> Option<DefaultGroupSetItem>;
 
     async fn get_paged_by_user_id(
         &self,
@@ -73,17 +73,23 @@ impl DefaultGroupSetsRepoIf for DefaultGroupSetsRepo {
     async fn find_by_group_id(&self, group_id: &Id) -> Option<DefaultGroupSetItem> {
         let group_id: ObjectId = group_id.clone().into();
 
-        find_one_by(&self.db.get(), COLLECTION, doc! {"group_id": group_id}, self.logger()).await
+        find_one_by(
+            &self.db.get(),
+            COLLECTION,
+            doc! {"group_id": group_id},
+            self.logger(),
+        )
+        .await
     }
 
-    async fn insert(&self, items: Vec<&InsertDefaultGroupSetItem>) {
+    async fn insert_many(&self, items: Vec<&InsertDefaultGroupSetItem>) {
         insert_many_into(&self.db.get(), COLLECTION, items, self.logger()).await;
     }
 
-    async fn get_by_user_id(&self, user_id: &Id) -> Vec<DefaultGroupSetItem> {
+    async fn find_by_user_id(&self, user_id: &Id) -> Option<DefaultGroupSetItem> {
         let user_id: ObjectId = user_id.clone().into();
 
-        find_many_by(
+        find_one_by(
             &self.db.get(),
             COLLECTION,
             doc! {"user_id": user_id},
@@ -116,6 +122,6 @@ impl DefaultGroupSetsRepoIf for DefaultGroupSetsRepo {
     async fn remove_by_user_id(&self, user_id: &Id) {
         let user_id: ObjectId = user_id.clone().into();
 
-        delete_by(&self.db.get(), COLLECTION, doc! {"user_id": user_id}).await;
+        delete_many_by(&self.db.get(), COLLECTION, doc! {"user_id": user_id}).await;
     }
 }

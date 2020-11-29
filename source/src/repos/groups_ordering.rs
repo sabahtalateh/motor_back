@@ -10,7 +10,7 @@ use proc_macro::HasLogger;
 
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
-use crate::repos::db::{delete_by, insert_many_into, paged_find_many_by, PaginationOptions};
+use crate::repos::db::{delete_many_by, insert_many_into, paged_find_many_by, PaginationOptions};
 use crate::repos::db::find_many_by;
 use crate::repos::Id;
 use crate::utils::Refs;
@@ -88,6 +88,6 @@ impl GroupsOrderingRepoIf for GroupsOrderingRepo {
 
     async fn delete_by_user_id(&self, user_id: &Id) {
         let user_id: ObjectId = user_id.clone().into();
-        delete_by(&self.db.get(), COLLECTION, doc! {"user_id": user_id}).await;
+        delete_many_by(&self.db.get(), COLLECTION, doc! {"user_id": user_id}).await;
     }
 }

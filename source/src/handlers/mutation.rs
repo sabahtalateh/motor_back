@@ -5,7 +5,7 @@ use shaku::HasComponent;
 
 use crate::config::ConfigIf;
 use crate::container::Container;
-use crate::handlers::groups::UserGroup;
+use crate::handlers::groups::{UserGroup, UserSet};
 use crate::repos::tokens::TokenPair;
 use crate::repos::Id;
 use crate::services::auth::AuthServiceIf;
@@ -52,30 +52,42 @@ impl Mutation {
         let ctr: &Container = ctx.data_unchecked::<Container>();
         let auth: &dyn AuthServiceIf = ctr.resolve_ref();
 
-        auth.refresh_token(&refresh, Utc::now())
-            .await
-            .extend_type()
+        auth.refresh_token(&refresh, Utc::now()).await.extend_type()
     }
 
-    pub async fn create_group(
+    pub async fn create_set(
         &self,
         ctx: &Context<'_>,
         access: String,
-        group_name: String,
-        group_set: Option<String>,
-        insert_after: Option<Id>,
-    ) -> Result<UserGroup> {
+        set_name: String,
+    ) -> Result<UserSet> {
         let ctr: &Container = ctx.data_unchecked::<Container>();
         let auth: &dyn AuthServiceIf = ctr.resolve_ref();
         let user = auth.validate_access(&access, Utc::now()).await?;
 
         let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
-
-        groups
-            .create_group(user, group_name, group_set.into(), insert_after)
-            .await
-            .extend_type()
+        groups.create_set(user, set_name).await.extend_type()
     }
+
+    // pub async fn create_group(
+    //     &self,
+    //     ctx: &Context<'_>,
+    //     access: String,
+    //     group_name: String,
+    //     group_set: Option<String>,
+    //     insert_after: Option<Id>,
+    // ) -> Result<UserGroup> {
+    //     let ctr: &Container = ctx.data_unchecked::<Container>();
+    //     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+    //     let user = auth.validate_access(&access, Utc::now()).await?;
+    //
+    //     let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
+    //
+    //     groups
+    //         .create_group(user, group_name, group_set.into(), insert_after)
+    //         .await
+    //         .extend_type()
+    // }
 
     // pub async fn my_stack_add(
     //     access: String,

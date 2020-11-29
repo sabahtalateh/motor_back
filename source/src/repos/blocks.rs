@@ -10,7 +10,7 @@ use proc_macro::HasLogger;
 use crate::db::DBIf;
 use crate::logger::AppLoggerIf;
 use crate::repos::db::{
-    find_many_by_ids, find_one_by_id, insert_one_into, link_external_ids, set_by_id,
+    find_many_by_ids, find_one_by_id, insert_one_into, link_external_ids, update_one_by_id,
 };
 use crate::repos::Id;
 
@@ -80,7 +80,7 @@ impl BlocksRepoIf for BlocksRepo {
     }
 
     async fn mark_removed(&self, id: &Id) -> bool {
-        set_by_id(&self.db.get(), COLLECTION, id, doc! {"removed": true}).await
+        update_one_by_id(&self.db.get(), COLLECTION, id, doc! {"removed": true}).await
     }
 
     async fn update(&self, _old: &Block, _new_text: &str) -> (Block, Block) {

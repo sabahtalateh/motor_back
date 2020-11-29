@@ -6,17 +6,33 @@ use shaku::HasComponent;
 
 use crate::config::ConfigIf;
 use crate::container::Container;
-use crate::handlers::groups::UserGroup;
+use crate::handlers::groups::{UserGroup, UserSet};
 use crate::handlers::stack::StackItem;
 use crate::handlers::Paging;
 use crate::repos::Id;
 use crate::services::auth::AuthServiceIf;
-use crate::services::groups::{GroupsServiceIf, Set};
+// use crate::services::groups::{GroupsServiceIf, Set};
 use crate::services::stack::StackServiceIf;
 use crate::services::PageInfo;
 use crate::utils::ExtendType;
+use crate::services::groups::GroupsServiceIf;
 
 pub struct Query;
+
+pub struct Sets;
+
+#[Object]
+impl Sets {
+    pub async fn recents(&self, ctx: &Context<'_>, access: String) -> Result<Vec<UserSet>> {
+        let ctr: &Container = ctx.data_unchecked::<Container>();
+        let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+        let user = auth.validate_access(&access, Utc::now()).await?;
+
+        let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
+
+        Ok(groups.recent_sets(user).await)
+    }
+}
 
 #[Object]
 impl Query {
@@ -25,47 +41,51 @@ impl Query {
         config.api_version()
     }
 
-    pub async fn recent_sets(&self, ctx: &Context<'_>, access: String) -> Result<Vec<Set>> {
-        let ctr: &Container = ctx.data_unchecked::<Container>();
-        let auth: &dyn AuthServiceIf = ctr.resolve_ref();
-        let user = auth.validate_access(&access, Utc::now()).await?;
-
-        let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
-
-        Ok(vec![Set {
-            id: Id::from_str("123"),
-            name: "123".to_string(),
-        }])
+    pub async fn sets(&self, ctx: &Context<'_>) -> Sets {
+        Sets
     }
 
-    pub async fn list_groups(
-        &self,
-        ctx: &Context<'_>,
-        access: String,
-        group_set: Option<String>,
-        paging: Option<Paging>,
-    ) -> Result<Connection<usize, UserGroup, PageInfo, EmptyFields>> {
-        let ctr: &Container = ctx.data_unchecked::<Container>();
-        let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
-        let auth: &dyn AuthServiceIf = ctr.resolve_ref();
-        let user = auth.validate_access(&access, Utc::now()).await?;
-
-        query(None, None, None, None, |_, _, _, _| async move {
-            let sl = groups
-                .list_groups(user, group_set.into(), paging)
-                .await
-                .extend_type()?;
-
-            let mut connection = Connection::with_additional_fields(false, false, sl.page_info);
-            connection.append(
-                sl.objects
-                    .into_iter()
-                    .map(|item| Edge::new(item.order as usize, item)),
-            );
-            Ok(connection)
-        })
-        .await
-    }
+    // pub async fn recent_sets(&self, ctx: &Context<'_>, access: String) -> Result<Vec<Set>> {
+    //     let ctr: &Container = ctx.data_unchecked::<Container>();
+    //     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+    //     let user = auth.validate_access(&access, Utc::now()).await?;
+    //
+    //     let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
+    //
+    //     Ok(vec![Set {
+    //         id: Id::from_str("123"),
+    //         name: "123".to_string(),
+    //     }])
+    // }
+    //
+    // pub async fn list_groups(
+    //     &self,
+    //     ctx: &Context<'_>,
+    //     access: String,
+    //     group_set: Option<String>,
+    //     paging: Option<Paging>,
+    // ) -> Result<Connection<usize, UserGroup, PageInfo, EmptyFields>> {
+    //     let ctr: &Container = ctx.data_unchecked::<Container>();
+    //     let groups: &dyn GroupsServiceIf = ctr.resolve_ref();
+    //     let auth: &dyn AuthServiceIf = ctr.resolve_ref();
+    //     let user = auth.validate_access(&access, Utc::now()).await?;
+    //
+    //     query(None, None, None, None, |_, _, _, _| async move {
+    //         let sl = groups
+    //             .list_groups(user, group_set.into(), paging)
+    //             .await
+    //             .extend_type()?;
+    //
+    //         let mut connection = Connection::with_additional_fields(false, false, sl.page_info);
+    //         connection.append(
+    //             sl.objects
+    //                 .into_iter()
+    //                 .map(|item| Edge::new(item.order as usize, item)),
+    //         );
+    //         Ok(connection)
+    //     })
+    //     .await
+    // }
 
     // pub async fn my_stack(&self, ctx: &Context<'_>, access: String) -> Result<Vec<StackItem>> {
     //     let ctr: &Container = ctx.data_unchecked::<Container>();

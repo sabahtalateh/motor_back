@@ -60,7 +60,7 @@ impl<T> OkOrMongoRecordId<T> for Option<T> {
     fn ok_or_mongo_record_id(self) -> AppResult<T> {
         match self {
             Some(v) => Ok(v),
-            None => Err(AppError::other_error(
+            None => Err(AppError::general(
                 "Mongo inserted record id is not of `ObjectId` type",
             )),
         }

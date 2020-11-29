@@ -11,7 +11,7 @@ pub enum AppErrorType {
     AccessExpired,
     InternalServerError,
     ValidationError,
-    OtherError,
+    General,
 }
 
 impl ToString for AppErrorType {
@@ -22,7 +22,7 @@ impl ToString for AppErrorType {
             AccessExpired => "access_expired",
             InternalServerError => "internal_server_error",
             ValidationError => "validation_error",
-            OtherError => "other_error",
+            General => "general_error",
         }
         .to_string()
     }
@@ -66,8 +66,8 @@ impl AppError {
         AppError::new("internal server error", AppErrorType::InternalServerError)
     }
 
-    pub fn other_error(message: &str) -> AppError {
-        AppError::new(message, AppErrorType::OtherError)
+    pub fn general(message: &str) -> AppError {
+        AppError::new(message, AppErrorType::General)
     }
 
     pub fn get_type(&self) -> String {

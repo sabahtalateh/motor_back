@@ -13,6 +13,7 @@ pub mod group_sets;
 pub mod groups;
 pub mod groups_ordering;
 pub mod marks;
+pub mod recent_sets;
 pub mod sets;
 pub mod stack;
 pub mod stack_history;
@@ -25,9 +26,12 @@ where
     Select: DeserializeOwned,
     Insert: Serialize,
 {
+    async fn insert(&self, insert: Insert) -> Select;
+    async fn insert_many(&self, insert: Vec<&Insert>);
     async fn find(&self, id: &Id) -> Option<Select>;
     async fn find_many(&self, ids: Vec<&Id>) -> Vec<Select>;
-    async fn insert(&self, insert: Insert) -> Select;
+    async fn delete(&self, id: &Id);
+    async fn delete_many(&self, ids: Vec<&Id>);
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -63,6 +67,10 @@ impl Id {
 impl Id {
     pub fn new(val: String) -> Self {
         Id(val)
+    }
+
+    pub fn oid(&self) -> ObjectId {
+        self.clone().into()
     }
 }
 
